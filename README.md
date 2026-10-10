@@ -4,7 +4,7 @@ A question becomes a dashboard.
 
 Glance turns a short prompt into a small set of vetted views. Numbers are calculated in the app. Jev, when enabled, only chooses which views to show. If the model is unavailable, a local selection still renders.
 
-**Live demo:** [https://strategy-que-phi-wood.trycloudflare.com](https://strategy-que-phi-wood.trycloudflare.com)
+**Live demo:** [https://exercises-scales-nsw-objects.trycloudflare.com](https://exercises-scales-nsw-objects.trycloudflare.com)
 
 The demo is served from this project through a Cloudflare quick tunnel. It stays up while this machine and the tunnel process are running. It is a temporary address, not a custom domain, and it can change if the tunnel is restarted.
 
