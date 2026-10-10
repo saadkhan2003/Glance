@@ -16,8 +16,17 @@
       "service": "glance"
     }
   ],
+  "ratelimits": [
+    {
+      "name": "JEV_RATE_LIMITER",
+      "namespace_id": "861310",
+      "simple": { "limit": 5, "period": 60 }
+    }
+  ],
   "vars": {
-    "AI_ENABLED": "false"
+    "AI_ENABLED": "true",
+    "AI_BUDGET_BACKEND": "cloudflare",
+    "JEV_MODEL": "typesafe/jev-1.13"
   },
   "observability": {
     "enabled": true,

@@ -117,7 +117,7 @@ Glance is a working demo.
 
 ## Cloudflare Workers
 
-Public Workers deploy (no API key on the edge; `AI_ENABLED=false` in `wrangler.jsonc`):
+Public Workers deploy uses a Cloudflare secret for `OPENROUTER_API_KEY`. Jev is enabled in `wrangler.jsonc`; a per-location rate-limit binding caps model requests to five per minute, and the local planner remains available when the limit is reached. Set a hard spending cap with the model provider before public use.
 
 ```sh
 npx wrangler logout

@@ -21,3 +21,18 @@ export function reserveRequest(): boolean {
     return true;
   } catch { return false; } // Fail closed: keep the free local dashboard available.
 }
+
+/** Workers have no durable local disk. Use a Cloudflare binding for the public demo. */
+export async function reserveWorkerRequest(): Promise<boolean> {
+  try {
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+    const env = getCloudflareContext().env as unknown as {
+      JEV_RATE_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> };
+    };
+    if (!env.JEV_RATE_LIMITER) return false;
+    const result = await env.JEV_RATE_LIMITER.limit({ key: "public-jev" });
+    return result.success;
+  } catch {
+    return false;
+  }
+}
