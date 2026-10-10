@@ -6,6 +6,7 @@
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-10-10",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "secrets": { "required": ["OPENROUTER_API_KEY"] },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
@@ -16,16 +17,19 @@
       "service": "glance"
     }
   ],
-  "ratelimits": [
+  "d1_databases": [
     {
-      "name": "JEV_RATE_LIMITER",
-      "namespace_id": "861310",
-      "simple": { "limit": 5, "period": 60 }
+      "binding": "AI_BUDGET_DB",
+      "database_name": "glance-ai-budget",
+      "database_id": "619073b1-274f-4844-8259-88c445569ddd",
+      "migrations_dir": "migrations"
     }
   ],
   "vars": {
     "AI_ENABLED": "true",
-    "AI_BUDGET_BACKEND": "cloudflare",
+    "AI_BUDGET_BACKEND": "d1",
+    "AI_MINUTE_REQUEST_LIMIT": "5",
+    "AI_DAILY_REQUEST_LIMIT": "100",
     "JEV_MODEL": "typesafe/jev-1.13"
   },
   "observability": {

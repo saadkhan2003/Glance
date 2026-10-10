@@ -112,16 +112,16 @@ Glance is a working demo.
 - There are no accounts, teams, or shared cloud saves.
 - The model receives the prompt and the source name, not uploaded rows. Do not put private records in the prompt.
 - AI is off unless `AI_ENABLED=true`. Failures return the local dashboard.
-- Paid requests are capped per process: 20 uncached calls a minute, and 100 a day by default. Set a provider credit limit as well. The daily counter is a single-process file, not a shared billing system.
+- On a single Node server, paid requests use a process-local minute limit and file-backed daily counter. On Cloudflare Workers, one D1 row enforces shared minute and daily limits. Set a provider credit limit as an independent cost ceiling.
 - Year-over-year comparison is not calculated. The app says so when a prompt asks for it.
 
 ## Cloudflare Workers
 
-Public Workers deploy uses a Cloudflare secret for `OPENROUTER_API_KEY`. Jev is enabled in `wrangler.jsonc`; a per-location rate-limit binding caps model requests to five per minute, and the local planner remains available when the limit is reached. Set a hard spending cap with the model provider before public use.
+Public Workers deploy uses a Cloudflare secret for `OPENROUTER_API_KEY`. Never put a real key in `.env.local` when building for Cloudflare: OpenNext copies that file into its generated server environment. The deploy script rejects a local key. Jev is enabled in `wrangler.jsonc`; a shared D1 counter atomically caps uncached model requests at five per UTC minute and 100 per UTC day across all Worker locations. The local planner remains available when either limit is reached. Set a hard spending cap with the model provider as a second protection.
 
 ```sh
-npx wrangler logout
-npx wrangler login
+npx wrangler d1 migrations apply glance-ai-budget --remote
+npx wrangler secret put OPENROUTER_API_KEY --name glance
 npm run deploy:cf
 ```
 

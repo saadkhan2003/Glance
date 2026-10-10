@@ -13,7 +13,7 @@ import { readModel } from "../lib/widgets/model";
 import { widgetById } from "../lib/widgets/definitions";
 import { localPlan, validatePlan, CURATED_WIDGETS, type PlanRequest } from "../lib/dashboard/planner";
 import { csvCell, dashboardCsv } from "../lib/dashboard/export";
-import { reserveRequest } from "../lib/dashboard/budget";
+import { reserveD1Request, reserveRequest } from "../lib/dashboard/budget";
 const demo=demoSnapshot();
 const model=(id:string,s=demo)=>readModel(s,widgetById(id)!);
 
@@ -127,4 +127,26 @@ test("CSV exports filtered values and neutralizes spreadsheet formulas",()=>{
 test("AI budget persists and fails closed on corruption",()=>{
   const dir=mkdtempSync(path.join(tmpdir(),"jev-budget-"));const oldDir=process.env.AI_BUDGET_DIR,oldLimit=process.env.AI_DAILY_REQUEST_LIMIT;
   try{process.env.AI_BUDGET_DIR=dir;process.env.AI_DAILY_REQUEST_LIMIT="2";assert.equal(reserveRequest(),true);assert.equal(reserveRequest(),true);assert.equal(reserveRequest(),false);assert.equal(JSON.parse(readFileSync(path.join(dir,"usage.json"),"utf8")).count,2);}finally{if(oldDir===undefined)delete process.env.AI_BUDGET_DIR;else process.env.AI_BUDGET_DIR=oldDir;if(oldLimit===undefined)delete process.env.AI_DAILY_REQUEST_LIMIT;else process.env.AI_DAILY_REQUEST_LIMIT=oldLimit;rmSync(dir,{recursive:true,force:true});}
+});
+
+test("shared AI budget atomically enforces minute and UTC day limits",async()=>{
+  const db=new DatabaseSync(":memory:");
+  try {
+    db.exec(readFileSync(path.join(process.cwd(),"migrations/0001_ai_budget.sql"),"utf8"));
+    const adapter={prepare:(sql:string)=>({bind:(...values:number[])=>({run:async()=>{
+      const result=db.prepare(sql).run(...values);
+      return {success:true,meta:{changes:Number(result.changes)}};
+    }})})};
+    const start=Date.UTC(2026,9,10,12,0,0);
+    assert.equal(await reserveD1Request(adapter,start,2,3),true);
+    assert.equal(await reserveD1Request(adapter,start+1000,2,3),true);
+    assert.equal(await reserveD1Request(adapter,start+2000,2,3),false);
+    assert.equal(await reserveD1Request(adapter,start+60_000,2,3),true);
+    assert.equal(await reserveD1Request(adapter,start+120_000,2,3),false);
+    assert.equal(await reserveD1Request(adapter,start+86_400_000,2,3),true);
+    assert.equal(await reserveD1Request(adapter,start+86_400_001,0,3),false);
+    const counts=db.prepare("SELECT day_count, minute_count FROM ai_budget WHERE id = 1").get() as {day_count:number;minute_count:number};
+    assert.equal(counts.day_count,1);
+    assert.equal(counts.minute_count,1);
+  } finally { db.close(); }
 });

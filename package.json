@@ -12,6 +12,8 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck && npm test",
     "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "prepreview:cf": "node scripts/assert-cloudflare-secret.mjs",
+    "predeploy:cf": "node scripts/assert-cloudflare-secret.mjs",
     "deploy:cf": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
