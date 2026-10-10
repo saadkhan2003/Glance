@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+import { Instrument_Sans } from "next/font/google";
 
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { Providers } from "./providers";
 import "./globals.css";
+
+const sans = Instrument_Sans({ subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
   title: "Glance — A question becomes a dashboard",
@@ -20,7 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen">
+      <body className={`${sans.className} min-h-screen`}>
         <TooltipProvider>
           <Providers>{children}</Providers>
           <Toaster />

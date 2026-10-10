@@ -19,7 +19,7 @@ export function MetricValue({
       {label ? (
         <p className="text-xs font-medium text-muted-foreground">{label}</p>
       ) : null}
-      <p className="mt-1 text-3xl font-semibold tabular-nums tracking-tight">
+      <p className="mt-1 text-3xl font-semibold tabular-nums tracking-[-0.03em]">
         {value}
         {unit ? (
           <span className="ml-1 text-lg font-normal text-muted-foreground">

@@ -15,7 +15,7 @@ type WorkspaceContext={
   prompt:string; draft:string; setDraft:(s:string)=>void; loading:boolean; selection:Selection;
   generate:(text?:string,source?:SourceId,data?:WorkspaceSnapshot)=>Promise<void>;
   startSample:(text:string)=>void;
-  filters:Filters; setFilters:(f:Filters)=>void; importData:(text:string)=>void; resetDemo:()=>void;
+  filters:Filters; setFilters:(f:Filters)=>void; importData:(text:string)=>void; resetDemo:()=>void; clearDashboard:()=>void;
   setPlan:(plan:DashboardPlan)=>void; saved:SavedDashboard[]; save:(name:string)=>void; load:(id:string)=>void; remove:(id:string)=>void;
 };
 const Context=createContext<WorkspaceContext|null>(null);
@@ -66,6 +66,7 @@ export function DataProvider({children}:{children:ReactNode}) {
   }
   function startSample(text:string){const next=demoSnapshot();setRaw(next);setFilters(EMPTY_FILTERS);void generate(text,"workspace",next,{scroll:true});}
   function resetDemo(){startSample(INITIAL_PROMPT);toast.success("Sample data loaded");}
+  function clearDashboard(){stopRequest();setRaw(emptySnapshot());setPrompt("");setDraft("");setFilters(EMPTY_FILTERS);setSourceValue("workspace");setSelection({layout:"overview",widgets:[],mode:"local",message:"Import your data, or open a sample."});toast.success("Dashboard cleared");}
   function persist(next:SavedDashboard[]){
     try{localStorage.setItem(STORAGE_KEY,JSON.stringify(next));setSaved(next);return true;}
     catch{toast.error("Browser storage is full or unavailable. Export your data instead.");return false;}
@@ -86,6 +87,6 @@ export function DataProvider({children}:{children:ReactNode}) {
     }catch{toast.error("This saved dashboard is incompatible. Import its data again.");}
   }
   function setPlan(plan:DashboardPlan){stopRequest();setSelection({...plan,mode:"local",message:"Your custom selection"});}
-  return <Context.Provider value={{raw,snapshot:filterSnapshot(raw,filters),source,setSource,prompt,draft,setDraft,loading,selection,generate,startSample,filters,setFilters,importData,resetDemo,setPlan,saved,save,load,remove:(id)=>{if(persist(saved.filter(s=>s.id!==id)))toast.success("Saved dashboard deleted");}}}>{children}</Context.Provider>;
+  return <Context.Provider value={{raw,snapshot:filterSnapshot(raw,filters),source,setSource,prompt,draft,setDraft,loading,selection,generate,startSample,filters,setFilters,importData,resetDemo,clearDashboard,setPlan,saved,save,load,remove:(id)=>{if(persist(saved.filter(s=>s.id!==id)))toast.success("Saved dashboard deleted");}}}>{children}</Context.Provider>;
 }
 export function useWorkspaceData(){const context=useContext(Context);if(!context)throw new Error("DataProvider is required");return context;}

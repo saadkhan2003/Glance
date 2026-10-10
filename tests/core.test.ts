@@ -4,6 +4,9 @@ import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { demoSnapshot, parseImport, importable, filterSnapshot, EMPTY_FILTERS, availableData } from "../lib/dashboard/data";
+import { importFromSqlite } from "../lib/dashboard/sqlite-import";
+import { importFromCsv } from "../lib/dashboard/csv-import";
+import { DatabaseSync } from "node:sqlite";
 import { readModel } from "../lib/widgets/model";
 import { widgetById } from "../lib/widgets/definitions";
 import { localPlan, validatePlan, CURATED_WIDGETS, type PlanRequest } from "../lib/dashboard/planner";
@@ -44,6 +47,34 @@ test("JSON roundtrip and partial imports never mix with demo rows",()=>{
 });
 test("import rejects malformed, oversized, mismatched and misleading input",()=>{
   for(const data of ["{", "{}",'{"foo":1}',JSON.stringify({revenue:{labels:["Jul"],values:[1],costs:[1],goal:100}}),JSON.stringify({revenue:{labels:["2026-07"],values:[],costs:[1],goal:100}}),JSON.stringify({regions:{regions:[{region:"A",value:80},{region:"B",value:32}]}})," ".repeat(500001)])assert.throws(()=>parseImport(data));
+});
+test("SQLite and CSV imports keep the booked total, average deal and invoice",()=>{
+  const dir=mkdtempSync(path.join(tmpdir(),"glance-sqlite-"));
+  const file=path.join(dir,"sample.sqlite");
+  const db=new DatabaseSync(file);
+  db.exec(`CREATE TABLE monthly_revenue (month TEXT, revenue INTEGER, costs INTEGER);
+    CREATE TABLE customers (id TEXT, name TEXT, region TEXT, amount INTEGER, status TEXT);
+    CREATE TABLE invoice_lines (number TEXT, client TEXT, due TEXT, item TEXT, qty INTEGER, price INTEGER);
+    CREATE TABLE goal (goal INTEGER);
+    INSERT INTO goal (goal) VALUES (100000);
+    INSERT INTO monthly_revenue (month, revenue, costs) VALUES ('2026-06',71000,35000),('2026-07',76000,36000);
+    INSERT INTO customers (id, name, region, amount, status) VALUES
+      ('5','Stark Ind','EU',22100,'At risk'),('6','Wayne Ent','NA',18400,'Active'),('4','Umbrella','NA',15600,'Active'),
+      ('1','Acme Corp','NA',12400,'Active'),('2','Globex','EU',9800,'Active'),('8','Soylent','NA',9100,'Active'),
+      ('3','Initech','APAC',7200,'Pending'),('7','Hooli','APAC',6400,'Pending');
+    INSERT INTO invoice_lines (number, client, due, item, qty, price) VALUES
+      ('INV-2048','Acme Corp','2026-10-15','Platform license',1,2400),
+      ('INV-2048','Acme Corp','2026-10-15','Support',1,600),
+      ('INV-2048','Acme Corp','2026-10-15','Extra seats',4,99);`);
+  db.close();
+  const snap=parseImport(JSON.stringify(importFromSqlite(readFileSync(file))));
+  assert.equal(model("booked-revenue",snap).value,101000);
+  assert.equal(model("average-deal",snap).value,12625);
+  assert.equal(model("invoice-total",snap).value,3396);
+  rmSync(dir,{recursive:true,force:true});
+  const csv=parseImport(JSON.stringify(importFromCsv("id,name,region,amount,status\n1,Acme Corp,NA,12400,Active\n")));
+  assert.equal(model("booked-revenue",csv).value,12400);
+  assert.throws(()=>importFromCsv("name,amount\nAcme,1\n"));
 });
 test("revenue imports sort periods while keeping numbers aligned",()=>{
   const s=parseImport(JSON.stringify({revenue:{labels:["2026-07","2026-01"],values:[76,42],costs:[36,28],goal:100}}));

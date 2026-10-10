@@ -26,7 +26,7 @@ export function TileShell({
   footer?: ReactNode;
 }) {
   return (
-    <Card className={cn("h-full shadow-none", className)}>
+    <Card className={cn("h-full rounded-2xl border-border/80 shadow-[0_1px_2px_oklch(0.2_0.02_180/0.05),0_18px_40px_-30px_oklch(0.28_0.04_180/0.55)]", className)}>
       <CardHeader className="space-y-1 p-4 pb-2">
         <div className="flex items-start justify-between gap-2">
           <div className="space-y-1">
