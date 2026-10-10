@@ -25,7 +25,7 @@ test("imported data generates, filters, exports and restores a saved view", asyn
   await page.getByRole("button", { name: "Generate dashboard" }).click();
   await expect(page.getByRole("heading", { name: "Revenue trend and top customers", exact: true })).toBeVisible();
   await expect(page.getByRole("status").filter({ hasText: "Local selection · no model request needed" })).toBeVisible();
-  await page.getByRole("button", { name: "Filters", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Dashboard filters" })).toBeVisible();
   await page.getByLabel("Customer status", { exact: true }).selectOption("At risk");
   await expect(page.getByRole("region", { name: "Customer table", exact: true })).toContainText("Stark Ind");
   await expect(page.getByRole("region", { name: "Customer table", exact: true })).not.toContainText("Acme Corp");
@@ -39,7 +39,6 @@ test("imported data generates, filters, exports and restores a saved view", asyn
   await page.getByRole("button", { name: "Save dashboard", exact: true }).click();
   await page.reload();
   await page.getByRole("button", { name: "Risk review", exact: true }).click();
-  await page.getByRole("button", { name: /Filters/ }).click();
   await expect(page.getByLabel("Customer status", { exact: true })).toHaveValue("At risk");
   expect(errors).toEqual([]);
 });
@@ -56,8 +55,22 @@ test("import validates errors and changes metrics", async ({ page }) => {
   await page.getByRole("button", { name: "Apply JSON" }).click();
   await expect(page.getByRole("region", { name: "Customer table", exact: true })).toContainText("Imported account");
   await expect(page.getByRole("region", { name: "Customer count", exact: true })).toContainText("1");
-  await page.getByLabel("Source", { exact: true }).selectOption("revenue");
-  await expect(page.getByRole("heading", { name: "No data for this source" })).toBeVisible();
+  await expect(page.getByLabel("Source", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Revenue from", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Customer region", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Customer status", { exact: true }).locator("option")).toHaveCount(2);
+});
+
+test("uploaded table fields filter rows immediately", async ({ page }) => {
+  await page.goto("/");
+  await page.getByText("Bring your own data", { exact: true }).click();
+  await page.getByLabel("JSON data", { exact: true }).fill(JSON.stringify({ tables: { items: [{ id: "contacts", title: "Contacts", columns: ["Name", "City"], rows: [{ Name: "Lina", City: "Lahore" }, { Name: "Sam", City: "Karachi" }] }] } }));
+  await page.getByRole("button", { name: "Apply JSON" }).click();
+  await expect(page.getByLabel("Contacts · City")).toBeVisible();
+  await page.getByLabel("Contacts · City").fill("lah");
+  await expect(page.getByRole("region", { name: "Imported sheet", exact: true })).toContainText("Lina");
+  await expect(page.getByRole("region", { name: "Imported sheet", exact: true })).not.toContainText("Sam");
+  await expect(page.getByText("Contacts: 1 rows")).toBeVisible();
 });
 
 test("manual layout, widgets and offline fallback", async ({ page }) => {

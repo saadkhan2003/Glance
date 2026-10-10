@@ -86,11 +86,12 @@ export function importable(s: WorkspaceSnapshot) {
 export function availableData(s: WorkspaceSnapshot): string[] {
   return [s.revenue.labels.length && "revenue", s.customers.rows.length && "customers", s.invoice.number && "invoice", s.tasks.columns.length && "tasks", s.team.members.length && "team", s.activity.items.length && "activity", s.reviews.reviews.length && "reviews", s.regions.regions.length && "regions", (s.sla.services.length || s.sla.target) && "sla", s.funnel.stages.length && "funnel", s.tables.items.length && "tables"].filter(Boolean) as string[];
 }
-export const filtersSchema = z.object({ from: z.string().regex(/^(|\d{4}-(0[1-9]|1[0-2]))$/), to: z.string().regex(/^(|\d{4}-(0[1-9]|1[0-2]))$/), region: z.string().max(200), status: z.enum(["all", "Active", "Pending", "At risk"]) });
+export const filtersSchema = z.object({ from: z.string().regex(/^(|\d{4}-(0[1-9]|1[0-2]))$/), to: z.string().regex(/^(|\d{4}-(0[1-9]|1[0-2]))$/), region: z.string().max(200), status: z.enum(["all", "Active", "Pending", "At risk"]), table: z.record(z.string(), z.string().max(200)).optional() });
 export type Filters = z.infer<typeof filtersSchema>;
 export const EMPTY_FILTERS: Filters = { from: "", to: "", region: "all", status: "all" };
+export function tableFilterKey(tableId: string, column: string) { return JSON.stringify([tableId, column]); }
 export function filterSnapshot(s: WorkspaceSnapshot, f: Filters): WorkspaceSnapshot {
   const indices = s.revenue.labels.map((label,i)=>({label,i})).filter(r=>(!f.from || r.label >= f.from) && (!f.to || r.label <= f.to));
   const values = indices.map(r=>s.revenue.values[r.i]);
-  return { ...s, revenue: { ...s.revenue, labels: indices.map(r=>r.label), values, costs: indices.map(r=>s.revenue.costs[r.i]), current: values.at(-1) ?? 0, previous: values.at(-2) ?? 0 }, customers: { rows: s.customers.rows.filter(r=>(f.region === "all" || r.region === f.region) && (f.status === "all" || r.status === f.status)) } };
+  return { ...s, revenue: { ...s.revenue, labels: indices.map(r=>r.label), values, costs: indices.map(r=>s.revenue.costs[r.i]), current: values.at(-1) ?? 0, previous: values.at(-2) ?? 0 }, customers: { rows: s.customers.rows.filter(r=>(f.region === "all" || r.region === f.region) && (f.status === "all" || r.status === f.status)) }, tables: { items: s.tables.items.map(table => ({ ...table, rows: table.rows.filter(row => table.columns.every(column => { const query = f.table?.[tableFilterKey(table.id, column)]?.trim().toLocaleLowerCase(); return !query || String(row[column] ?? "").toLocaleLowerCase().includes(query); })) })) } };
 }
