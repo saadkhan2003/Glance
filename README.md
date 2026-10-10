@@ -11,13 +11,17 @@ Glance turns a short prompt into a small set of vetted views. Numbers are calcul
 The page opens empty. Import data before asking for a dashboard.
 
 - Type a question in **Ask**, then click **Generate dashboard**. Importing and typing never request Jev or render views automatically.
+- Click **Load sample data** to try an example workspace immediately; the suggested questions fill the prompt without making a model request.
 - Import JSON, SQLite, CSV, or Excel from **Bring your own data**. Excel files with multiple sheets can import all sheets or one selected sheet.
 - Filter revenue by month and customers by region or status.
 - Drag a card to reorder it. Arrow controls remain for keyboard use.
 - Export the visible, filtered view as CSV, or download the source JSON.
 - Save up to 10 dashboards in this browser and reopen them after a refresh.
+- Use **Give feedback** or **Request a pilot** to describe your current report and whether Glance handled it. The form sends only what you type through FormSubmit to the project inbox.
 
-Imported records stay in this browser. Up to 10 saved dashboards are stored in its local storage; unsaved work is lost on refresh. Nothing follows you to another device.
+Imported records are stored in this browser. Excel and SQLite files briefly pass through the server for conversion but are not saved there. Up to 10 saved dashboards are stored in browser local storage; unsaved work is lost on refresh. Nothing follows you to another device. Jev receives the prompt and a source label, not uploaded rows.
+
+Feedback is delivered by FormSubmit to `msaad.official6@gmail.com`. The first submission sends an activation email to that inbox; confirm it once before relying on delivery. FormSubmit retains submissions made before activation for up to 30 days.
 
 ## Run it yourself
 

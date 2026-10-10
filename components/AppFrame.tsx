@@ -5,6 +5,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbS
 import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarTrigger } from "@/components/ui/menubar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Composer } from "@/components/Composer";
+import { FeedbackDialog } from "@/components/FeedbackDialog";
 import { InspectorStrip } from "@/components/InspectorStrip";
 import { LiveDashboard } from "@/components/LiveDashboard";
 import { useWorkspaceData } from "@/components/data-provider";
@@ -50,7 +51,7 @@ export function AppFrame(){
             </MenubarMenu>
           </Menubar>
         </div>
-        <span className="status-pill"><span className={`size-1.5 rounded-full ${loading?"animate-pulse bg-amber-500":"bg-emerald-600"}`}/>{statusLabel}</span>
+        <div className="flex flex-wrap items-center gap-2"><FeedbackDialog/><span className="status-pill"><span className={`size-1.5 rounded-full ${loading?"animate-pulse bg-amber-500":"bg-emerald-600"}`}/>{statusLabel}</span></div>
       </header>
       <main id="dashboard" tabIndex={-1} className="stage-main outline-none"><LiveDashboard/><InspectorStrip/></main>
       <footer className="stage-foot">Glance · Import your data to see numbers · USD</footer>

@@ -93,6 +93,43 @@ test("typing and importing do not request or render a dashboard", async ({ page 
   await expect(page.locator("[data-widget]")).not.toHaveCount(0);
 });
 
+test("sample data and suggested questions prepare a demo without AI usage", async ({ page }) => {
+  let requests = 0;
+  await page.route("**/api/dashboard", async route => { requests++; await route.continue(); });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Load sample data" }).last().click();
+  await expect(page.getByText(/Example workspace ·/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Ready to generate" })).toBeVisible();
+  await page.getByRole("button", { name: "Which customers are at risk?" }).click();
+  await expect(page.getByLabel("Ask")).toHaveValue("Which customers are at risk?");
+  expect(requests).toBe(0);
+  await page.getByRole("button", { name: "Generate dashboard" }).click();
+  await expect.poll(() => requests).toBe(1);
+});
+
+test("feedback and pilot forms ask about real reports", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Give feedback" }).click();
+  await expect(page.getByLabel("What report do you make today?")).toBeVisible();
+  await expect(page.getByLabel("Did Glance handle your data?")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Send feedback" }).locator("xpath=ancestor::form")).toHaveAttribute("action", "https://formsubmit.co/msaad.official6@gmail.com");
+  await page.getByRole("checkbox", { name: "I would like to join a pilot" }).check();
+  await expect(page.getByLabel("Your email (required for the pilot)")).toHaveAttribute("required", "");
+  await page.getByRole("dialog").press("Escape");
+  await page.getByRole("button", { name: "Request a pilot" }).click();
+  await expect(page.getByRole("heading", { name: "Request a Glance pilot" })).toBeVisible();
+  await page.getByLabel("What report do you make today?").fill("Weekly client revenue report");
+  await page.getByLabel("Did Glance handle your data?").selectOption("Partly");
+  await page.getByLabel("Your email (required for the pilot)").fill("tester@example.com");
+  expect(await page.locator('form[action^="https://formsubmit.co/"]').evaluate(form => (form as HTMLFormElement).checkValidity())).toBe(true);
+  let submitted = "";
+  await page.route("https://formsubmit.co/**", async route => { submitted = route.request().postData() ?? ""; await route.fulfill({ status: 200, contentType: "text/html", body: "Submitted" }); });
+  await page.getByRole("button", { name: "Send pilot request" }).click();
+  await expect.poll(() => submitted).toContain("Weekly+client+revenue+report");
+  expect(submitted).toContain("tester%40example.com");
+  expect(submitted).toContain("pilot=Yes");
+});
+
 test("manual layout, widgets and offline fallback", async ({ page }) => {
   await page.goto("/");
   await importWorkspace(page);

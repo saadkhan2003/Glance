@@ -17,7 +17,7 @@ import { readModel } from "@/lib/widgets/model";
 import { toast } from "sonner";
 
 export function LiveDashboard(){
-  const {snapshot,raw,prompt,selection,loading,source,filters,setFilters,setPlan,save}=useWorkspaceData();
+  const {snapshot,raw,prompt,selection,loading,source,filters,setFilters,setPlan,save,loadSample}=useWorkspaceData();
   const [showSave,setShowSave]=useState(false),[name,setName]=useState("");
   const candidates=candidatesFor({prompt,source,available:availableData(raw) as PlanRequest["available"]});
   const remaining=candidates.filter(w=>!selection.widgets.includes(w.id));
@@ -51,9 +51,9 @@ export function LiveDashboard(){
       }
     });
   }
-  if(raw.origin==="empty") return <div className="empty-stage"><img src="/empty-dashboard.svg" alt="" width={96} height={72} className="mb-5"/><p className="eyebrow">Workspace</p><h2 className="mt-3 text-3xl font-semibold tracking-tight">Your dashboard starts empty</h2><p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">Nothing is loaded yet. Import JSON, SQLite, CSV, or Excel from the sidebar, then describe what you want to see.</p></div>;
+  if(raw.origin==="empty") return <div className="empty-stage"><img src="/empty-dashboard.svg" alt="" width={96} height={72} className="mb-5"/><p className="eyebrow">Workspace</p><h2 className="mt-3 text-3xl font-semibold tracking-tight">Your dashboard starts empty</h2><p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">Load sample data to try Glance, or import your own JSON, SQLite, CSV, or Excel file from the sidebar.</p><Button className="mt-5" onClick={()=>void loadSample().catch(caught=>toast.error(caught instanceof Error?caught.message:"Could not load sample data."))}>Load sample data</Button></div>;
   return <div>
-    <div className="mb-7 flex flex-wrap items-start justify-between gap-4"><div><div className="mb-3 flex items-center gap-2"><span className="eyebrow">The big picture</span><span className="rounded-sm border bg-card px-2 py-0.5 text-[10px] font-medium text-muted-foreground">Imported data</span></div><h2 className="max-w-3xl text-3xl font-semibold tracking-tight md:text-4xl">{prompt || "Your data is ready"}</h2><p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground"><Database className="size-3.5"/>Browser import · {updated} · USD</p></div>
+    <div className="mb-7 flex flex-wrap items-start justify-between gap-4"><div><div className="mb-3 flex items-center gap-2"><span className="eyebrow">The big picture</span><span className="rounded-sm border bg-card px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{raw.origin==="demo"?"Sample data":"Imported data"}</span></div><h2 className="max-w-3xl text-3xl font-semibold tracking-tight md:text-4xl">{prompt || "Your data is ready"}</h2><p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground"><Database className="size-3.5"/>{raw.origin==="demo"?"Example workspace":"Browser import"} · {updated} · USD</p></div>
     <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={()=>setShowSave(!showSave)} aria-expanded={showSave}><Save/>Save view</Button><Button size="sm" variant="outline" disabled={!selection.widgets.length} onClick={()=>{downloadFile("jev-dashboard.csv",dashboardCsv(snapshot,selection.widgets),"text/csv;charset=utf-8");toast.success("CSV exported using the current filters");}}><Download/>Export CSV</Button></div></div>
     {showSave&&<form className="mb-5 flex flex-wrap items-end gap-3 rounded-xl border bg-muted/30 p-4" onSubmit={e=>{e.preventDefault();save(name);}}><div className="min-w-0 flex-1"><label htmlFor="save-name" className="mb-2 block text-xs font-medium">Dashboard name</label><Input id="save-name" maxLength={60} required value={name} onChange={e=>setName(e.target.value)} placeholder="My revenue dashboard"/></div><Button type="submit">Save dashboard</Button><p className="w-full text-xs text-muted-foreground">Saved in this browser, including imported data, filters and widget order. Up to 10 views.</p></form>}
     <div className="command-bar mb-5">

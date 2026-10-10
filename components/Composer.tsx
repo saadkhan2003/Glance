@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { FileJson, FolderOpen, Trash2, Upload } from "lucide-react";
+import { FileJson, FolderOpen, Play, Trash2, Upload } from "lucide-react";
 import { useWorkspaceData } from "@/components/data-provider";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -14,9 +14,16 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { importFromCsv } from "@/lib/dashboard/csv-import";
 import { MAX_IMPORT_BYTES } from "@/lib/dashboard/data";
+import { toast } from "sonner";
+
+const SAMPLE_QUESTIONS = [
+  "Show revenue growth and top customers",
+  "Which customers are at risk?",
+  "Show invoices and monthly revenue",
+];
 
 export function Composer() {
-  const { draft, setDraft, generate, loading, importData, clearDashboard, saved, load, remove } = useWorkspaceData();
+  const { draft, setDraft, generate, loading, raw, importData, loadSample, clearDashboard, saved, load, remove } = useWorkspaceData();
   const [json, setJson] = useState("");
   const [error, setError] = useState("");
   const [importOpen, setImportOpen] = useState(false);
@@ -26,6 +33,7 @@ export function Composer() {
   const [sheetNames, setSheetNames] = useState<string[]>([]);
   const [sheetMode, setSheetMode] = useState<"all" | "one">("all");
   const [sheetOne, setSheetOne] = useState("");
+  const [sampleLoading, setSampleLoading] = useState(false);
   function apply(text = json) {
     try {
       importData(text);
@@ -54,6 +62,13 @@ export function Composer() {
     const text = JSON.stringify(payload.data);
     setJson(text);
     apply(text);
+  }
+
+  async function trySample(question?: string) {
+    setSampleLoading(true);
+    try { await loadSample(question); }
+    catch (caught) { toast.error(caught instanceof Error ? caught.message : "Could not load sample data."); }
+    finally { setSampleLoading(false); }
   }
 
   return (
@@ -91,10 +106,16 @@ export function Composer() {
 
       <Separator />
 
+      {(raw.origin === "empty" || raw.origin === "demo") && <section aria-label="Try sample data" className="space-y-3 rounded-xl border bg-muted/30 p-3">
+        <div><p className="text-sm font-medium">Try it with sample data</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Load an example workspace in one click. It will not use Jev until you generate a dashboard.</p></div>
+        <Button className="w-full" variant="outline" disabled={sampleLoading} onClick={() => void trySample()}><Play/>{sampleLoading ? "Loading sample…" : "Load sample data"}</Button>
+        <div><p className="mb-2 text-xs font-medium">Try a question</p><div className="flex flex-col gap-1.5">{SAMPLE_QUESTIONS.map(question => <button key={question} type="button" className="rounded-md border bg-background px-3 py-2 text-left text-xs hover:bg-muted" onClick={() => raw.origin === "empty" ? void trySample(question) : setDraft(question)}>{question}</button>)}</div></div>
+      </section>}
+
       <Collapsible open={importOpen} onOpenChange={setImportOpen}>
         <CollapsibleTrigger className="flex w-full items-center justify-between text-sm font-medium">
           <span>Bring your own data</span>
-          <Badge variant="outline">{importOpen ? "Hide" : "JSON · SQLite · CSV · XLSX"}</Badge>
+          <Badge variant="outline" className="shrink-0">{importOpen ? "Hide" : "4 file types"}</Badge>
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-4 space-y-3">
           <p className="text-xs leading-5 text-muted-foreground">
@@ -231,6 +252,15 @@ export function Composer() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Separator />
+
+      <section aria-label="Data and privacy" className="space-y-2 rounded-xl border p-3 text-xs leading-5 text-muted-foreground">
+        <p className="text-sm font-medium text-foreground">Your data and this demo</p>
+        <p>Imported records and saved views are stored in this browser. Saved views do not follow you to another device.</p>
+        <p>Jev receives your question and a source label to select views; Glance calculates the numbers. Uploaded rows are not sent to Jev.</p>
+        <p>Excel and SQLite files briefly reach the server for conversion, then return to your browser. Glance does not save those files on the server.</p>
+      </section>
 
       <Separator />
 

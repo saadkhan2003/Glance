@@ -13,7 +13,7 @@ type WorkspaceContext={
   snapshot:WorkspaceSnapshot; raw:WorkspaceSnapshot; source:SourceId; setSource:(s:SourceId)=>void;
   prompt:string; draft:string; setDraft:(s:string)=>void; loading:boolean; selection:Selection;
   generate:(text?:string,source?:SourceId,data?:WorkspaceSnapshot)=>Promise<void>;
-  filters:Filters; setFilters:(f:Filters)=>void; importData:(text:string)=>void; clearDashboard:()=>void;
+  filters:Filters; setFilters:(f:Filters)=>void; importData:(text:string)=>void; loadSample:(question?:string)=>Promise<void>; clearDashboard:()=>void;
   setPlan:(plan:DashboardPlan)=>void; saved:SavedDashboard[]; save:(name:string)=>void; load:(id:string)=>void; remove:(id:string)=>void;
 };
 const Context=createContext<WorkspaceContext|null>(null);
@@ -64,12 +64,19 @@ export function DataProvider({children}:{children:ReactNode}) {
     }
     void generate(prompt,next);
   }
-  function importData(text:string){
+  function importData(text:string,sample=false){
     const next=parseImport(text);
     if(!availableData(next).length) throw new Error("Import at least one nonempty dataset.");
+    if(sample) next.origin="demo";
     stopRequest();setRaw(next);setPrompt("");setFilters(EMPTY_FILTERS);setSourceValue("workspace");
     setSelection({layout:"overview",widgets:[],mode:"local",message:"Data imported. Click Generate dashboard to choose views."});
-    toast.success("Data imported. Your data stays in this browser.");
+    toast.success(sample?"Sample data loaded. Click Generate dashboard to choose views.":"Data imported. Your data stays in this browser.");
+  }
+  async function loadSample(question="Show revenue growth and top customers"){
+    const response=await fetch("/example-data.json");
+    if(!response.ok) throw new Error("Sample data is unavailable. Try again.");
+    importData(await response.text(),true);
+    setDraft(question);
   }
   function clearDashboard(){stopRequest();setRaw(emptySnapshot());setPrompt("");setDraft("");setFilters(EMPTY_FILTERS);setSourceValue("workspace");setSelection({layout:"overview",widgets:[],mode:"local",message:"Import your data, then ask for a dashboard."});toast.success("Dashboard cleared");}
   function persist(next:SavedDashboard[]){
@@ -92,6 +99,6 @@ export function DataProvider({children}:{children:ReactNode}) {
     }catch{toast.error("This saved dashboard is incompatible. Import its data again.");}
   }
   function setPlan(plan:DashboardPlan){stopRequest();setSelection({...plan,mode:"local",message:"Your custom selection"});}
-  return <Context.Provider value={{raw,snapshot:filterSnapshot(raw,filters),source,setSource,prompt,draft,setDraft,loading,selection,generate,filters,setFilters,importData,clearDashboard,setPlan,saved,save,load,remove:(id)=>{if(persist(saved.filter(s=>s.id!==id)))toast.success("Saved dashboard deleted");}}}>{children}</Context.Provider>;
+  return <Context.Provider value={{raw,snapshot:filterSnapshot(raw,filters),source,setSource,prompt,draft,setDraft,loading,selection,generate,filters,setFilters,importData,loadSample,clearDashboard,setPlan,saved,save,load,remove:(id)=>{if(persist(saved.filter(s=>s.id!==id)))toast.success("Saved dashboard deleted");}}}>{children}</Context.Provider>;
 }
 export function useWorkspaceData(){const context=useContext(Context);if(!context)throw new Error("DataProvider is required");return context;}
