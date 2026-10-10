@@ -9,7 +9,7 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, Dr
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { availableData, EMPTY_FILTERS, importable, isCustomerMirrorTable, tableFilterKey } from "@/lib/dashboard/data";
+import { dashboardAvailableData, EMPTY_FILTERS, importable, isCustomerMirrorTable, tableFilterKey } from "@/lib/dashboard/data";
 import { candidatesFor, CURATED_WIDGETS, type DashboardPlan, type PlanRequest } from "@/lib/dashboard/planner";
 import { dashboardCsv, downloadFile } from "@/lib/dashboard/export";
 import { componentSnippet } from "@/lib/dashboard/snippet";
@@ -19,7 +19,7 @@ import { toast } from "sonner";
 export function LiveDashboard(){
   const {snapshot,raw,prompt,selection,loading,source,filters,setFilters,setPlan,save,loadSample,clearDashboard}=useWorkspaceData();
   const [showSave,setShowSave]=useState(false),[name,setName]=useState("");
-  const candidates=candidatesFor({prompt,source,available:availableData(raw) as PlanRequest["available"]});
+  const candidates=candidatesFor({prompt,source,available:dashboardAvailableData(raw) as PlanRequest["available"]});
   const remaining=candidates.filter(w=>!selection.widgets.includes(w.id));
   const regions=[...new Set(raw.customers.rows.map(row=>row.region))].sort();
   const statuses=[...new Set(raw.customers.rows.map(row=>row.status))].sort();

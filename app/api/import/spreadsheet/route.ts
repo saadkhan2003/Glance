@@ -13,7 +13,15 @@ export async function POST(request: Request) {
     const name = file.name.toLowerCase();
     const bytes = new Uint8Array(await file.arrayBuffer());
     const sheet = form.get("sheet");
-    const choice = sheet === "all" || typeof sheet === "string" && sheet.length ? (sheet as XlsxSheetChoice) : undefined;
+    const selected = form.get("sheets");
+    if (sheet && selected) return NextResponse.json({ error: "Choose one sheet mode." }, { status: 400 });
+    let choice: XlsxSheetChoice | undefined = sheet === "all" || typeof sheet === "string" && sheet.length ? sheet : undefined;
+    if (typeof selected === "string") {
+      const parsed: unknown = JSON.parse(selected);
+      if (!Array.isArray(parsed) || parsed.length < 1 || parsed.length > 100 || parsed.some(name => typeof name !== "string" || name.length > 200))
+        return NextResponse.json({ error: "Choose valid worksheets." }, { status: 400 });
+      choice = parsed as string[];
+    }
 
     if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
       const result = importFromXlsx(bytes, choice);

@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { availableData, emptySnapshot, EMPTY_FILTERS, filterSnapshot, filtersSchema, importable, parseImport, type Filters } from "@/lib/dashboard/data";
+import { availableData, dashboardAvailableData, emptySnapshot, EMPTY_FILTERS, filterSnapshot, filtersSchema, importable, parseImport, type Filters } from "@/lib/dashboard/data";
 import { localPlan, planSchema, validatePlan, type Selection, type DashboardPlan, type PlanRequest } from "@/lib/dashboard/planner";
 import { SOURCE_IDS, type SourceId, type WorkspaceSnapshot } from "@/lib/sources/types";
 
@@ -37,7 +37,7 @@ export function DataProvider({children}:{children:ReactNode}) {
     if(!availableData(data).length) {toast.error("Import data first, then generate a dashboard.");return;}
     if(request.current) return;
     stopRequest();
-    const input:PlanRequest={prompt:trimmed,source:nextSource,available:availableData(data) as PlanRequest["available"]};
+    const input:PlanRequest={prompt:trimmed,source:nextSource,available:dashboardAvailableData(data) as PlanRequest["available"]};
     setPrompt(input.prompt);setDraft(text);setSourceValue(nextSource);
     if (options?.scroll && window.innerWidth < 1024) requestAnimationFrame(() => document.getElementById("dashboard")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }));
     const local=localPlan(input);setSelection(local);
@@ -59,7 +59,7 @@ export function DataProvider({children}:{children:ReactNode}) {
     if (prompt.trim().length < 3) {
       stopRequest();
       setSourceValue(next);
-      setSelection(localPlan({prompt,source:next,available:availableData(raw) as PlanRequest["available"]}));
+      setSelection(localPlan({prompt,source:next,available:dashboardAvailableData(raw) as PlanRequest["available"]}));
       return;
     }
     void generate(prompt,next);

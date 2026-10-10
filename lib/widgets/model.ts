@@ -1,5 +1,6 @@
 import type { WidgetSpec } from "@/lib/widgets/definitions";
 import type { WorkspaceSnapshot } from "@/lib/sources/types";
+import { isCustomerMirrorTable } from "@/lib/dashboard/data";
 
 export type ViewRow = Record<string, string | number>;
 
@@ -420,7 +421,7 @@ export function readModel(snap: WorkspaceSnapshot, spec: WidgetSpec): ViewModel 
       };
     }
     case "tables": {
-      const table = snap.tables.items[0];
+      const table = snap.tables.items.find(item => !isCustomerMirrorTable(item, snap.customers.rows)) ?? snap.tables.items[0];
       return {
         ...base,
         title: table?.title ?? spec.label,

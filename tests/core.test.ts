@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { demoSnapshot, parseImport, importable, filterSnapshot, EMPTY_FILTERS, availableData, isCustomerMirrorTable } from "../lib/dashboard/data";
+import { demoSnapshot, parseImport, importable, filterSnapshot, EMPTY_FILTERS, availableData, dashboardAvailableData, isCustomerMirrorTable } from "../lib/dashboard/data";
 import { importFromSqlite } from "../lib/dashboard/sqlite-import";
 import { importFromCsv } from "../lib/dashboard/csv-import";
 import { importFromXlsx } from "../lib/dashboard/xlsx-import";
@@ -78,6 +78,7 @@ test("SQLite and CSV imports keep the booked total, average deal and invoice",()
   assert.equal(model("booked-revenue",csv).value,12400);
   assert.equal(isCustomerMirrorTable(csv.tables.items[0],csv.customers.rows),true);
   assert.equal(filterSnapshot(csv,{...EMPTY_FILTERS,region:"EU"}).tables.items[0].rows.length,0);
+  assert.deepEqual(dashboardAvailableData(csv),["customers"]);
   const arbitrary=importFromCsv("name,amount\nAcme,1\n");
   const dyn=parseImport(JSON.stringify(arbitrary));
   assert.equal(dyn.tables.items[0].columns[0],"name");
@@ -96,6 +97,11 @@ test("SQLite and CSV imports keep the booked total, average deal and invoice",()
   XLSX.utils.book_append_sheet(multi,revenue,"Revenue");
   const multiBytes=new Uint8Array(XLSX.write(multi,{type:"array",bookType:"xlsx"}));
   assert.deepEqual(importFromXlsx(multiBytes).sheets,["Customers","Revenue"]);
+  const selected=importFromXlsx(multiBytes,["Revenue"]);
+  assert.ok("data" in selected);
+  assert.deepEqual(parseImport(JSON.stringify(selected.data)).tables.items.map(table=>table.title),["Revenue"]);
+  assert.throws(()=>importFromXlsx(multiBytes,[]));
+  assert.throws(()=>importFromXlsx(multiBytes,["Customers","Customers"]));
   const merged=importFromXlsx(multiBytes,"all");
   assert.ok("data" in merged);
   const both=parseImport(JSON.stringify(merged.data));

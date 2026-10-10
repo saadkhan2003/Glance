@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { readFileSync } from "node:fs";
+import * as XLSX from "xlsx";
 import demo from "../../lib/dashboard/demo.json";
 
 const importPayload = {
@@ -89,9 +90,31 @@ test("customer CSV does not show duplicate column filters and can be cleared", a
   await expect(page.getByLabel("Customer region")).toBeVisible();
   await expect(page.getByLabel("CSV · name")).toHaveCount(0);
   await expect(page.getByText("CSV: 1 rows")).toHaveCount(0);
+  await page.getByLabel("Ask").fill("Show me the total list of customers");
+  await page.getByRole("button", { name: "Generate dashboard" }).click();
+  await expect(page.getByRole("region", { name: "Customer table" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Imported sheet" })).toHaveCount(0);
   await page.getByRole("button", { name: "Clear data" }).click();
   await expect(page.getByRole("heading", { name: "Your dashboard starts empty" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Dashboard filters" })).toHaveCount(0);
+});
+
+test("Excel import can choose specific sheets", async ({ page }) => {
+  const book=XLSX.utils.book_new();
+  for (const name of ["North", "South", "West"])
+    XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet([["Name", "Sales"],[name,10]]),name);
+  const buffer=Buffer.from(XLSX.write(book,{type:"array",bookType:"xlsx"}));
+  await page.goto("/");
+  await page.getByText("Bring your own data", { exact: true }).click();
+  await page.getByLabel("Upload JSON, SQLite, CSV, or Excel file").setInputFiles({name:"areas.xlsx",mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",buffer});
+  await expect(page.getByRole("dialog", { name: "Choose Excel worksheets" })).toBeVisible();
+  await page.getByRole("radio", { name: "Selected sheets" }).check();
+  await page.getByRole("checkbox", { name: "South" }).check();
+  await page.getByRole("button", { name: "Import selected sheets" }).click();
+  await expect(page.getByRole("dialog", { name: "Choose Excel worksheets" })).toHaveCount(0);
+  await expect(page.getByLabel("North · Sales")).toBeVisible();
+  await expect(page.getByLabel("South · Sales")).toBeVisible();
+  await expect(page.getByLabel("West · Sales")).toHaveCount(0);
 });
 
 test("typing and importing do not request or render a dashboard", async ({ page }) => {

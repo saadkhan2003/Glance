@@ -3,7 +3,7 @@ import { MAX_IMPORT_BYTES } from "@/lib/dashboard/data";
 import { buildDynamicTable, mergeStructured, parseTabularImport } from "@/lib/dashboard/sheet-import";
 import type { ImportTable } from "@/lib/sources/types";
 
-export type XlsxSheetChoice = "all" | string;
+export type XlsxSheetChoice = "all" | string | string[];
 
 function readWorkbook(bytes: Uint8Array) {
   if (bytes.byteLength > MAX_IMPORT_BYTES) throw new Error("Excel file must be smaller than 500 KB");
@@ -58,6 +58,11 @@ export function importFromXlsx(bytes: Uint8Array, choice?: XlsxSheetChoice) {
     return { needsChoice: true as const, sheets: names };
   }
   if (choice === "all") return { data: importSheets(workbook, names, true) };
+  if (Array.isArray(choice)) {
+    if (!choice.length || new Set(choice).size !== choice.length || choice.some(name => !names.includes(name)))
+      throw new Error("Choose at least one valid worksheet without duplicates.");
+    return { data: importSheets(workbook, choice, false) };
+  }
   if (!names.includes(choice)) throw new Error(`Worksheet "${choice}" was not found in this file.`);
   return { data: importSheets(workbook, [choice], false) };
 }

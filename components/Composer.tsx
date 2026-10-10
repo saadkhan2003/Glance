@@ -31,8 +31,9 @@ export function Composer() {
   const excelFile = useRef<File | null>(null);
   const [sheetDialog, setSheetDialog] = useState(false);
   const [sheetNames, setSheetNames] = useState<string[]>([]);
-  const [sheetMode, setSheetMode] = useState<"all" | "one">("all");
+  const [sheetMode, setSheetMode] = useState<"all" | "one" | "selected">("all");
   const [sheetOne, setSheetOne] = useState("");
+  const [selectedSheets, setSelectedSheets] = useState<string[]>([]);
   const [sampleLoading, setSampleLoading] = useState(false);
   function apply(text = json) {
     try {
@@ -43,10 +44,11 @@ export function Composer() {
     }
   }
 
-  async function uploadSpreadsheet(chosen: File, sheet?: string) {
+  async function uploadSpreadsheet(chosen: File, sheet?: string | string[]) {
     const body = new FormData();
     body.append("file", chosen);
-    if (sheet) body.append("sheet", sheet);
+    if (Array.isArray(sheet)) body.append("sheets", JSON.stringify(sheet));
+    else if (sheet) body.append("sheet", sheet);
     const response = await fetch("/api/import/spreadsheet", { method: "POST", body });
     const payload = await response.json() as { data?: unknown; error?: string; needsChoice?: boolean; sheets?: string[] };
     if (!response.ok) throw new Error(payload.error || "Could not read this spreadsheet.");
@@ -54,6 +56,7 @@ export function Composer() {
       excelFile.current = chosen;
       setSheetNames(payload.sheets);
       setSheetOne(payload.sheets[0]);
+      setSelectedSheets(payload.sheets.slice(0, 1));
       setSheetMode("all");
       setSheetDialog(true);
       return;
@@ -119,7 +122,7 @@ export function Composer() {
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-4 space-y-3">
           <p className="text-xs leading-5 text-muted-foreground">
-            JSON or SQLite for the full workspace. CSV and Excel keep whatever column headers you upload (no fixed schema). Known layouts still power revenue and customer widgets when headers match. Multi-tab Excel can merge every sheet or pick one tab. Up to 500 KB.
+            JSON or SQLite for the full workspace. CSV and Excel keep whatever column headers you upload (no fixed schema). Known layouts still power revenue and customer widgets when headers match. Multi-tab Excel can import one, selected, or all sheets. Up to 500 KB.
           </p>
           <a href="/example-data.json" download className="flex items-center gap-2 text-xs font-medium text-primary underline underline-offset-4">
             <FileJson className="size-4" />
@@ -222,6 +225,10 @@ export function Composer() {
               <input type="radio" name="sheet-mode" checked={sheetMode === "one"} onChange={() => setSheetMode("one")} />
               One sheet
             </label>
+            <label className="flex cursor-pointer items-center gap-2">
+              <input type="radio" name="sheet-mode" checked={sheetMode === "selected"} onChange={() => setSheetMode("selected")} />
+              Selected sheets
+            </label>
             {sheetMode === "one" && (
               <div>
                 <Label htmlFor="excel-sheet">Worksheet</Label>
@@ -232,14 +239,16 @@ export function Composer() {
                 </select>
               </div>
             )}
+            {sheetMode === "selected" && <fieldset className="max-h-48 space-y-2 overflow-auto rounded-md border p-3"><legend className="px-1 text-xs font-medium">Choose worksheets</legend>{sheetNames.map(name=><label key={name} className="flex cursor-pointer items-center gap-2"><input type="checkbox" checked={selectedSheets.includes(name)} onChange={event=>setSelectedSheets(current=>event.target.checked?[...current,name]:current.filter(item=>item!==name))}/>{name}</label>)}</fieldset>}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setSheetDialog(false); excelFile.current = null; }}>Cancel</Button>
             <Button
+              disabled={sheetMode === "selected" && selectedSheets.length === 0}
               onClick={() => {
                 const pending = excelFile.current;
                 if (!pending) return;
-                void uploadSpreadsheet(pending, sheetMode === "all" ? "all" : sheetOne)
+                void uploadSpreadsheet(pending, sheetMode === "all" ? "all" : sheetMode === "one" ? sheetOne : selectedSheets)
                   .then(() => {
                     setSheetDialog(false);
                     excelFile.current = null;
@@ -247,7 +256,7 @@ export function Composer() {
                   .catch((caught) => setError(caught instanceof Error ? caught.message : "Could not read this spreadsheet."));
               }}
             >
-              Import
+              Import {sheetMode === "all" ? "all sheets" : sheetMode === "one" ? "one sheet" : "selected sheets"}
             </Button>
           </DialogFooter>
         </DialogContent>

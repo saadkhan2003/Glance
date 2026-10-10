@@ -100,6 +100,12 @@ export function isCustomerMirrorTable(table: ImportTable, customers: WorkspaceSn
     return customer && fields.every((field, index) => String(row[table.columns[index]]) === String(customer[field]));
   });
 }
+export function dashboardAvailableData(s: WorkspaceSnapshot): string[] {
+  const available = availableData(s);
+  if (s.tables.items.length && s.tables.items.every(table => isCustomerMirrorTable(table, s.customers.rows)))
+    return available.filter(dataset => dataset !== "tables");
+  return available;
+}
 export function filterSnapshot(s: WorkspaceSnapshot, f: Filters): WorkspaceSnapshot {
   const indices = s.revenue.labels.map((label,i)=>({label,i})).filter(r=>(!f.from || r.label >= f.from) && (!f.to || r.label <= f.to));
   const values = indices.map(r=>s.revenue.values[r.i]);

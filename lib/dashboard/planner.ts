@@ -26,7 +26,7 @@ export function localPlan(input: PlanRequest): Selection {
     team: /team|people|roster|online/.test(p) ? 8 : 0,
     sla: /service|health|sla|uptime|incident/.test(p) ? 8 : 0,
     reviews: /review|rating|feedback/.test(p) ? 8 : 0,
-    tables: /sheet|table|column|upload|spreadsheet|csv|excel|workbook|data/.test(p) ? 6 : 2,
+    tables: /sheet|column|upload|spreadsheet|csv|excel|workbook|data/.test(p) ? 6 : 0,
   };
   const preferences: Record<string, number> = { "revenue-headline": 2, "revenue-line": 3, "rev-cost-stack": 4, "revenue-table": 2, "customer-table": 3, "region-pie": 2, "customer-count": 1, "import-workbook": 5, "import-sheet-table": 4 };
   if (/risk/.test(p)) preferences["risk-table"] = 15;
