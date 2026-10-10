@@ -31,7 +31,7 @@ test("supplied demo additions produce accurate metrics",()=>{
   assert.equal(model("team-online").value,3);
 });
 test("every exposed widget has finite data",()=>{
-  assert.equal(CURATED_WIDGETS.length,15);
+  assert.equal(CURATED_WIDGETS.length,26);
   for(const w of CURATED_WIDGETS){const m=readModel(demo,w);assert.ok(Number.isFinite(m.value),w.id);if(!["stat","delta"].includes(w.kind))assert.ok(m.rows.length>0,w.id);}
 });
 test("JSON roundtrip and partial imports never mix with demo rows",()=>{

@@ -88,12 +88,12 @@ The bundled sample lives in `lib/dashboard/demo.json`. On that sample, booked cu
 | `components/LiveDashboard.tsx` | Canvas, filters, export, drag-to-reorder |
 | `components/data-provider.tsx` | Data, selection, and browser storage |
 | `lib/dashboard/data.ts` | Import validation and filters |
-| `lib/dashboard/planner.ts` | Allowlist of 15 widgets and the local plan |
+| `lib/dashboard/planner.ts` | Allowlist of 26 widgets and the local plan |
 | `lib/widgets/model.ts` | Metric calculations |
 | `app/api/dashboard/route.ts` | Bounded Jev request, timeout, cache, and fallback |
 | `lib/dashboard/export.ts` | CSV export with spreadsheet-formula escaping |
 
-Only those 15 widgets can be selected. Older widget definitions remain in the repo and are not part of this demo.
+Those 26 widgets can be selected. Older definitions remain in the repo and are not part of this demo.
 
 ## Verification
 

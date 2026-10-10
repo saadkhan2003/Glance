@@ -124,7 +124,7 @@
 .widget-controls button:hover { background:var(--muted); color:var(--foreground); }
 .widget-controls button:disabled { opacity:.25; }
 .widget-controls svg { width:12px; height:12px; }
-.widget-frame h3 { padding-right: 4.5rem; }
+.widget-frame h3 { padding-right: 7.5rem; }
 button,select,summary,a,input,textarea { outline-offset:3px; }
 :focus-visible { outline:2px solid var(--ring); }
 @media(min-width:768px) { .dashboard-grid.overview,.dashboard-grid.balanced { grid-template-columns:repeat(2,minmax(0,1fr)); } .overview .widget-wide { grid-column:span 2; } }

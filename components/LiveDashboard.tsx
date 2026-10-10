@@ -3,11 +3,17 @@ import { useState } from "react";
 import { ArrowDown, ArrowUp, Download, Plus, Save, SlidersHorizontal, X, Database, Sparkles, LayoutGrid } from "lucide-react";
 import { useWorkspaceData } from "@/components/data-provider";
 import { WidgetView } from "@/components/widgets/WidgetView";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { availableData, EMPTY_FILTERS, importable } from "@/lib/dashboard/data";
 import { candidatesFor, CURATED_WIDGETS, type DashboardPlan, type PlanRequest } from "@/lib/dashboard/planner";
 import { dashboardCsv, downloadFile } from "@/lib/dashboard/export";
+import { componentSnippet } from "@/lib/dashboard/snippet";
+import { readModel } from "@/lib/widgets/model";
 import { SOURCE_IDS, type SourceId } from "@/lib/sources/types";
 import { toast } from "sonner";
 
@@ -37,6 +43,24 @@ export function LiveDashboard(){
       <label htmlFor="source" className="text-xs font-medium">Source</label><select id="source" className="control-select" value={source} onChange={e=>setSource(e.target.value as SourceId)}>{SOURCE_IDS.map(id=><option key={id} value={id}>{id==="workspace"?"All datasets":id[0].toUpperCase()+id.slice(1)}</option>)}</select>
       <span className="hidden h-5 border-r sm:block"/>
       <Button variant={hasFilters?"secondary":"ghost"} size="sm" onClick={()=>setShowFilters(!showFilters)} aria-expanded={showFilters}><SlidersHorizontal/>Filters{hasFilters?" · active":""}</Button>
+      <Drawer>
+        <DrawerTrigger asChild><Button variant="ghost" size="sm">Component library</Button></DrawerTrigger>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>shadcn pieces in this view</DrawerTitle>
+            <DrawerDescription>Buttons, cards, tables, charts, badges, dialogs, menus, and drawers. Copy a card to take its current numbers into your own app.</DrawerDescription>
+          </DrawerHeader>
+          <div className="grid grid-cols-2 gap-2 px-4 pb-6 text-sm sm:grid-cols-3">
+            {["Button","Card","Table","Chart","Badge","Dialog","Drawer","Menubar","Navigation menu","Tooltip","Alert","Kbd"].map((name)=><div key={name} className="rounded-md border px-3 py-2">{name}</div>)}
+          </div>
+        </DrawerContent>
+      </Drawer>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild><Button variant="ghost" size="sm">More</Button></DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={()=>downloadFile("jev-data.json",JSON.stringify(importable(raw),null,2),"application/json")}>Download source JSON</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <label htmlFor="layout" className="sr-only">Layout</label><LayoutGrid className="ml-auto hidden size-4 text-muted-foreground sm:block"/><select id="layout" className="control-select" value={selection.layout} onChange={e=>setPlan({widgets:selection.widgets,layout:e.target.value as DashboardPlan["layout"]})}><option value="overview">Overview</option><option value="balanced">Balanced grid</option><option value="wide">Full width</option></select>
     </div>
     {showFilters&&<section aria-label="Dashboard filters" className="mb-5 rounded-xl border bg-muted/30 p-4"><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -45,11 +69,11 @@ export function LiveDashboard(){
       <div><label htmlFor="region" className="filter-label">Customer region</label><select id="region" className="control-input" value={filters.region} onChange={e=>setFilters({...filters,region:e.target.value})}><option value="all">All regions</option>{[...new Set(raw.customers.rows.map(r=>r.region))].sort().map(r=><option key={r}>{r}</option>)}</select></div>
       <div><label htmlFor="status" className="filter-label">Customer status</label><select id="status" className="control-input" value={filters.status} onChange={e=>setFilters({...filters,status:e.target.value as typeof filters.status})}><option value="all">All statuses</option><option>Active</option><option>Pending</option><option>At risk</option></select></div>
     </div><div className="mt-3 flex flex-wrap items-center justify-between gap-2"><p className="text-xs text-muted-foreground">{snapshot.revenue.labels.length} revenue periods · {snapshot.customers.rows.length} customers. Other datasets are unchanged.</p><Button size="sm" variant="ghost" onClick={()=>setFilters(EMPTY_FILTERS)}>Clear filters</Button></div>{filters.from&&filters.to&&filters.from>filters.to&&<p role="alert" className="text-xs text-destructive">The start period must be before the end period.</p>}</section>}
-    {/last year|year.over.year|\byoy\b/i.test(prompt)&&<p role="status" className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">Year-over-year comparisons are not available in this demo. Showing the available monthly data instead.</p>}
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground"><p role="status" className="flex items-center gap-2"><Sparkles className={`size-3.5 ${loading?"animate-pulse":""}`}/>{loading?"Jev is selecting views. Your local dashboard is ready.":selection.message}</p><span>Drag a card to reorder · {selection.widgets.length} views</span></div>
+    {/last year|year.over.year|\byoy\b/i.test(prompt)&&<Alert variant="warning" className="mb-4"><AlertTitle>Year-over-year is not in this demo</AlertTitle><AlertDescription>Showing the available monthly data instead.</AlertDescription></Alert>}
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground"><p role="status" className="flex items-center gap-2">{loading?<Skeleton className="size-3.5 rounded-full"/>:<Sparkles className="size-3.5"/>}{loading?"Jev is selecting views. Your local dashboard is ready.":selection.message}</p><span>Drag a card to reorder · {selection.widgets.length} views</span></div>
     {!selection.widgets.length?<div className="rounded-xl border border-dashed p-12 text-center"><Database className="mx-auto mb-4 size-8 text-muted-foreground"/><h3 className="font-medium">No data for this source</h3><p className="mt-2 text-sm text-muted-foreground">Choose another source or import a dataset using the example JSON format.</p><Button variant="outline" className="mt-5" onClick={()=>setSource("workspace")}>Show all datasets</Button></div>:<div className={`dashboard-grid ${selection.layout}`} aria-busy={loading}>
-      {selection.widgets.map((id,index)=>{const spec=CURATED_WIDGETS.find(w=>w.id===id);if(!spec)return null;const wide=["line","table","kanban","invoice"].includes(spec.kind);return <section key={id} aria-label={spec.label} draggable onDragStart={e=>{e.dataTransfer.setData("text/plain",id);e.dataTransfer.effectAllowed="move";setDragging(id);}} onDragEnd={()=>setDragging(null)} onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="move";}} onDrop={e=>{e.preventDefault();dropOn(id,e.dataTransfer.getData("text/plain"));setDragging(null);}} className={`widget-frame min-w-0 ${wide?"widget-wide":""} ${dragging===id?"is-dragging":""}`}>
-        <div className="widget-controls"><span className="drag-grip" aria-hidden="true"><svg viewBox="0 0 12 12" width="12" height="12"><circle cx="4" cy="3" r="1" fill="currentColor"/><circle cx="8" cy="3" r="1" fill="currentColor"/><circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="8" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="9" r="1" fill="currentColor"/><circle cx="8" cy="9" r="1" fill="currentColor"/></svg></span><button aria-label={`Move ${spec.label} earlier`} disabled={index===0} onClick={()=>move(index,-1)}><ArrowUp/></button><button aria-label={`Move ${spec.label} later`} disabled={index===selection.widgets.length-1} onClick={()=>move(index,1)}><ArrowDown/></button><button aria-label={`Remove ${spec.label}`} disabled={selection.widgets.length===1} onClick={()=>changeWidgets(selection.widgets.filter(w=>w!==id))}><X/></button></div>
+      {selection.widgets.map((id,index)=>{const spec=CURATED_WIDGETS.find(w=>w.id===id);if(!spec)return null;const wide=["line","table","kanban","invoice"].includes(spec.kind);return <section key={id} aria-label={spec.label} draggable onDragStart={e=>{if((e.target as HTMLElement).closest("button")){e.preventDefault();return;}e.dataTransfer.setData("text/plain",id);e.dataTransfer.effectAllowed="move";setDragging(id);}} onDragEnd={()=>setDragging(null)} onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="move";}} onDrop={e=>{e.preventDefault();dropOn(id,e.dataTransfer.getData("text/plain"));setDragging(null);}} className={`widget-frame min-w-0 ${wide?"widget-wide":""} ${dragging===id?"is-dragging":""}`}>
+        <div className="widget-controls" onMouseDown={e=>e.stopPropagation()}><span className="drag-grip" aria-hidden="true"><svg viewBox="0 0 12 12" width="12" height="12"><circle cx="4" cy="3" r="1" fill="currentColor"/><circle cx="8" cy="3" r="1" fill="currentColor"/><circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="8" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="9" r="1" fill="currentColor"/><circle cx="8" cy="9" r="1" fill="currentColor"/></svg></span><button aria-label={`Copy ${spec.label} code`} onClick={async()=>{try{await navigator.clipboard.writeText(componentSnippet(spec, readModel(snapshot, spec)));toast.success("Component code copied");}catch{toast.error("Could not copy the component code.");}}}><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><rect x="6" y="6" width="8" height="8" rx="1.5" fill="none" stroke="currentColor"/><path d="M4 10H3.5A1.5 1.5 0 0 1 2 8.5v-5A1.5 1.5 0 0 1 3.5 2h5A1.5 1.5 0 0 1 10 3.5V4" fill="none" stroke="currentColor"/></svg></button><button aria-label={`Move ${spec.label} earlier`} disabled={index===0} onClick={()=>move(index,-1)}><ArrowUp/></button><button aria-label={`Move ${spec.label} later`} disabled={index===selection.widgets.length-1} onClick={()=>move(index,1)}><ArrowDown/></button><button aria-label={`Remove ${spec.label}`} disabled={selection.widgets.length===1} onClick={()=>changeWidgets(selection.widgets.filter(w=>w!==id))}><X/></button></div>
         <WidgetView spec={spec} prompt={prompt}/>
       </section>;})}
     </div>}

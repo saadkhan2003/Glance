@@ -3,9 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, FileJson, FolderOpen, RotateCcw, Sparkles, Trash2, Upload } from "lucide-react";
 import { useWorkspaceData } from "@/components/data-provider";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Kbd } from "@/components/ui/kbd";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
@@ -82,25 +85,8 @@ export function Composer() {
           {loading ? "Updating" : "Generate dashboard"}
           <ArrowUpRight className="ml-auto" />
         </Button>
-        <p className="text-[11px] leading-5 text-muted-foreground">The dashboard updates as you type. Only the prompt is sent for selection.</p>
+        <p className="text-[11px] leading-5 text-muted-foreground">The dashboard updates as you type. Only the prompt is sent for selection. <Kbd>Ctrl</Kbd> <Kbd>Enter</Kbd></p>
       </form>
-
-      <Separator />
-
-      <section aria-label="Example prompts" className="space-y-2">
-        <p className="eyebrow">Samples</p>
-        <div className="space-y-1">
-          {examples.map((example) => (
-            <button type="button" key={example.title} className="example-button" onClick={() => startSample(example.text)}>
-              <span className="flex items-center justify-between gap-2 text-sm font-medium">
-                {example.title}
-                <ArrowUpRight className="size-3.5 shrink-0 text-muted-foreground" />
-              </span>
-              <span className="mt-0.5 block text-xs text-muted-foreground">{example.detail}</span>
-            </button>
-          ))}
-        </div>
-      </section>
 
       <Separator />
 
@@ -179,6 +165,31 @@ export function Composer() {
 
       <Separator />
 
+      <section aria-label="Example prompts" className="space-y-2">
+        <p className="eyebrow">Samples</p>
+        <div className="space-y-1">
+          {examples.map((example) => (
+            <HoverCard key={example.title}>
+              <HoverCardTrigger asChild>
+                <button type="button" className="example-button" onClick={() => startSample(example.text)}>
+                  <span className="flex items-center justify-between gap-2 text-sm font-medium">
+                    {example.title}
+                    <ArrowUpRight className="size-3.5 shrink-0 text-muted-foreground" />
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">{example.detail}</span>
+                </button>
+              </HoverCardTrigger>
+              <HoverCardContent className="w-64 text-sm">
+                <p className="font-medium">{example.title}</p>
+                <p className="mt-1 text-muted-foreground">{example.detail}. Opens fictional sample numbers in the canvas.</p>
+              </HoverCardContent>
+            </HoverCard>
+          ))}
+        </div>
+      </section>
+
+      <Separator />
+
       <section aria-label="Saved dashboards" className="space-y-2">
         <div className="flex items-center justify-between">
           <p className="eyebrow">Saved on this device</p>
@@ -199,9 +210,21 @@ export function Composer() {
                     </span>
                   </span>
                 </button>
-                <Button variant="ghost" size="icon" aria-label={`Delete ${item.name}`} onClick={() => remove(item.id)}>
-                  <Trash2 />
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" aria-label={`Delete ${item.name}`}><Trash2 /></Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete {item.name}?</AlertDialogTitle>
+                      <AlertDialogDescription>This removes the saved view from this browser. The file on disk is unchanged.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => remove(item.id)}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </li>
             ))}
           </ul>

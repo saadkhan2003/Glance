@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   title: "Glance — A question becomes a dashboard",
   description:
     "Turn a question into a dashboard. Explore revenue, customers and operations with explainable AI selection.",
+  icons: { icon: "/glance-mark.svg", apple: "/glance-mark.svg" },
 };
 
 export default function RootLayout({

@@ -19,7 +19,7 @@ export function LineSeriesChart({
 }) {
   const data = labels.map((l, i) => ({ name: l, value: values[i] ?? 0 }));
   return (
-    <ChartContainer config={lineConfig} className="h-[200px] w-full">
+    <ChartContainer config={lineConfig} className="h-[260px] w-full">
       <Recharts.LineChart data={data}>
         <Recharts.CartesianGrid strokeDasharray="3 3" vertical={false} />
         <Recharts.XAxis dataKey="name" tickLine={false} axisLine={false} />
@@ -46,7 +46,7 @@ export function BarSeriesChart({
 }) {
   const data = labels.map((l, i) => ({ name: l, value: values[i] ?? 0 }));
   return (
-    <ChartContainer config={lineConfig} className="h-[200px] w-full">
+    <ChartContainer config={lineConfig} className="h-[260px] w-full">
       <Recharts.BarChart data={data}>
         <Recharts.CartesianGrid strokeDasharray="3 3" vertical={false} />
         <Recharts.XAxis dataKey="name" tickLine={false} axisLine={false} />
@@ -71,7 +71,7 @@ export function AreaSeriesChart({
 }) {
   const data = labels.map((l, i) => ({ name: l, value: values[i] ?? 0 }));
   return (
-    <ChartContainer config={lineConfig} className="h-[200px] w-full">
+    <ChartContainer config={lineConfig} className="h-[260px] w-full">
       <Recharts.AreaChart data={data}>
         <Recharts.CartesianGrid strokeDasharray="3 3" vertical={false} />
         <Recharts.XAxis dataKey="name" tickLine={false} axisLine={false} />
@@ -105,7 +105,7 @@ export function PieSeriesChart({
     return acc;
   }, {} as ChartConfig);
   return (
-    <ChartContainer config={config} className="h-[200px] w-full">
+    <ChartContainer config={config} className="h-[260px] w-full">
       <Recharts.PieChart>
         <Recharts.Pie
           data={data}
@@ -145,7 +145,7 @@ export function StackedBarSeriesChart({
     return acc;
   }, {} as ChartConfig);
   return (
-    <ChartContainer config={config} className="h-[200px] w-full">
+    <ChartContainer config={config} className="h-[260px] w-full">
       <Recharts.BarChart data={data}>
         <Recharts.CartesianGrid strokeDasharray="3 3" vertical={false} />
         <Recharts.XAxis dataKey="name" tickLine={false} axisLine={false} />

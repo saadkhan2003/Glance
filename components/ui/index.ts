@@ -1,6 +1,7 @@
 /** Barrel export for the shadcn/ui primitive library in this repo. */
 export * from "./accordion";
 export * from "./alert";
+export * from "./alert-dialog";
 export * from "./aspect-ratio";
 export * from "./avatar";
 export * from "./badge";
@@ -15,10 +16,14 @@ export * from "./collapsible";
 export * from "./command";
 export * from "./context-menu";
 export * from "./dialog";
+export * from "./drawer";
 export * from "./dropdown-menu";
 export * from "./hover-card";
 export * from "./input";
+export * from "./kbd";
 export * from "./label";
+export * from "./menubar";
+export * from "./navigation-menu";
 export * from "./pagination";
 export * from "./popover";
 export * from "./progress";

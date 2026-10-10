@@ -343,6 +343,12 @@ export function readModel(snap: WorkspaceSnapshot, spec: WidgetSpec): ViewModel 
           { label: "Target", value: `${snap.sla.target}%` },
           { label: "Incidents", value: String(snap.sla.incidents) },
         ],
+        rows: [
+          { metric: "Uptime", value: snap.sla.uptime },
+          { metric: "Target", value: snap.sla.target },
+          { metric: "Incidents", value: snap.sla.incidents },
+        ],
+        items: snap.sla.services.map((service) => ({ title: service.name, detail: service.status, meta: snap.sla.message })),
       };
     case "funnel":
       return {

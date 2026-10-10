@@ -2,7 +2,7 @@ import { z } from "zod";
 import { WIDGETS } from "@/lib/widgets/definitions";
 import { SOURCE_IDS, type SourceId } from "@/lib/sources/types";
 
-const IDS = ["revenue-headline", "revenue-mom", "revenue-line", "booked-revenue", "customer-count", "average-deal", "largest-account", "customer-table", "risk-table", "invoice-card", "funnel-chart", "kanban-board", "team-roster", "service-list", "review-quotes"];
+const IDS = ["revenue-headline", "revenue-mom", "revenue-goal", "revenue-line", "rev-cost-stack", "revenue-table", "margin-headline", "booked-revenue", "customer-count", "average-deal", "largest-account", "customer-table", "risk-table", "region-pie", "region-table", "region-compare", "invoice-card", "invoice-lines-table", "funnel-chart", "funnel-table", "kanban-board", "team-roster", "activity-timeline", "service-list", "sla-alert", "review-quotes"];
 export const CURATED_WIDGETS = IDS.map(id=>WIDGETS.find(w=>w.id===id)!);
 export const planSchema = z.object({ layout: z.enum(["overview", "balanced", "wide"]), widgets: z.array(z.string()).min(1).max(8).refine(ids=>new Set(ids).size===ids.length) });
 export type DashboardPlan = z.infer<typeof planSchema>;
@@ -27,7 +27,7 @@ export function localPlan(input: PlanRequest): Selection {
     sla: /service|health|sla|uptime|incident/.test(p) ? 8 : 0,
     reviews: /review|rating|feedback/.test(p) ? 8 : 0,
   };
-  const preferences: Record<string, number> = { "revenue-headline": 2, "revenue-line": 3, "customer-table": 2, "customer-count": 1 };
+  const preferences: Record<string, number> = { "revenue-headline": 2, "revenue-line": 3, "rev-cost-stack": 4, "revenue-table": 2, "customer-table": 3, "region-pie": 2, "customer-count": 1 };
   if (/risk/.test(p)) preferences["risk-table"] = 15;
   if (/average/.test(p)) preferences["average-deal"] = 15;
   if (/largest|biggest|top/.test(p)) preferences["largest-account"] = 12;
@@ -37,7 +37,7 @@ export function localPlan(input: PlanRequest): Selection {
   const scored = candidates.map(w=>({w, score: (relevance[datasetFor(w.slice)] ?? 0) + (preferences[w.id] ?? 0)})).sort((a,b)=>b.score-a.score);
   const relevant = scored.filter(r=>(relevance[datasetFor(r.w.slice)] ?? 0)>0);
   const list = relevant.length ? relevant : scored;
-  const take = /dense|all metrics|comprehensive/.test(p) ? 6 : /only|single/.test(p) ? 1 : 4;
+  const take = /dense|all metrics|comprehensive/.test(p) ? 8 : /only|single/.test(p) ? 1 : 6;
   const widgets = list.slice(0,take).map(r=>r.w.id);
   return { layout: /invoice/.test(p) && widgets.length <= 2 ? "wide" : "overview", widgets, mode: "local", message: "Local selection · no model request needed" };
 }
