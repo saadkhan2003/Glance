@@ -119,7 +119,7 @@ function WidgetBody({ kind, model }: { kind: WidgetSpec["kind"]; model: ViewMode
       );
     }
     case "table":
-      return <RecordTable rows={model.rows} />;
+      return <RecordTable rows={model.rows} columns={model.tableColumns.length ? model.tableColumns : undefined} />;
     case "line":
       return <LineSeriesChart labels={model.labels} values={model.values} />;
     case "bar":

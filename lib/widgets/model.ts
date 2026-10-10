@@ -21,6 +21,7 @@ export type ViewModel = {
   fields: { label: string; value: string }[];
   alert: { level: "warning" | "default"; message: string };
   invoice: WorkspaceSnapshot["invoice"];
+  tableColumns: string[];
 };
 
 function money(n: number) {
@@ -83,6 +84,7 @@ export function readModel(snap: WorkspaceSnapshot, spec: WidgetSpec): ViewModel 
       message: snap.sla.message,
     },
     invoice: snap.invoice,
+    tableColumns: [],
   };
 
   switch (spec.slice) {
@@ -403,6 +405,31 @@ export function readModel(snap: WorkspaceSnapshot, spec: WidgetSpec): ViewModel 
               : "All services healthy",
         },
       };
+    case "tables-all": {
+      const tables = snap.tables.items;
+      return {
+        ...base,
+        title: spec.label,
+        value: tables.reduce((sum, table) => sum + table.rows.length, 0),
+        max: Math.max(tables.length, 1),
+        groups: tables.map((table) => ({
+          name: table.title,
+          total: table.rows.length,
+          rows: table.rows,
+        })),
+      };
+    }
+    case "tables": {
+      const table = snap.tables.items[0];
+      return {
+        ...base,
+        title: table?.title ?? spec.label,
+        value: table?.rows.length ?? 0,
+        max: Math.max(table?.rows.length ?? 0, 1),
+        rows: table?.rows ?? [],
+        tableColumns: table?.columns ?? [],
+      };
+    }
     default:
       return base;
   }

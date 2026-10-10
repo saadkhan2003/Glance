@@ -1,5 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
+  // Worker URL: https://glance.<your-workers-subdomain>.workers.dev
+  // Confirm the selected account with `npx wrangler whoami` before deploying.
   "name": "glance",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-10-10",

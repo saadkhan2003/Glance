@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowUpRight, BarChart3, FileJson, FolderOpen, HeartPulse, Receipt, RotateCcw, ShieldAlert, Trash2, Upload } from "lucide-react";
+import { FileJson, FolderOpen, Trash2, Upload } from "lucide-react";
 import { useWorkspaceData } from "@/components/data-provider";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Kbd } from "@/components/ui/kbd";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -15,19 +15,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { importFromCsv } from "@/lib/dashboard/csv-import";
 import { MAX_IMPORT_BYTES } from "@/lib/dashboard/data";
 
-const examples = [
-  { title: "Revenue & customers", text: "Revenue trend and top customers", detail: "Growth and the customer book", icon: BarChart3 },
-  { title: "Accounts at risk", text: "At-risk customers and average deal size", detail: "Accounts that need attention", icon: ShieldAlert },
-  { title: "Billing & conversion", text: "Invoice for Acme and conversion funnel", detail: "Invoice total and funnel", icon: Receipt },
-  { title: "Team operations", text: "Team roster, kanban tasks and service health", detail: "People, tasks, and services", icon: HeartPulse },
-];
-
 export function Composer() {
-  const { draft, setDraft, generate, startSample, loading, importData, resetDemo, clearDashboard, saved, load, remove } = useWorkspaceData();
+  const { draft, setDraft, generate, loading, importData, clearDashboard, saved, load, remove } = useWorkspaceData();
   const [json, setJson] = useState("");
   const [error, setError] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const file = useRef<HTMLInputElement>(null);
+  const excelFile = useRef<File | null>(null);
+  const [sheetDialog, setSheetDialog] = useState(false);
+  const [sheetNames, setSheetNames] = useState<string[]>([]);
+  const [sheetMode, setSheetMode] = useState<"all" | "one">("all");
+  const [sheetOne, setSheetOne] = useState("");
   const timer = useRef<number | null>(null);
   const generateRef = useRef(generate);
   generateRef.current = generate;
@@ -54,11 +52,33 @@ export function Composer() {
     }
   }
 
+  async function uploadSpreadsheet(chosen: File, sheet?: string) {
+    const body = new FormData();
+    body.append("file", chosen);
+    if (sheet) body.append("sheet", sheet);
+    const response = await fetch("/api/import/spreadsheet", { method: "POST", body });
+    const payload = await response.json() as { data?: unknown; error?: string; needsChoice?: boolean; sheets?: string[] };
+    if (!response.ok) throw new Error(payload.error || "Could not read this spreadsheet.");
+    if (payload.needsChoice && payload.sheets?.length) {
+      excelFile.current = chosen;
+      setSheetNames(payload.sheets);
+      setSheetOne(payload.sheets[0]);
+      setSheetMode("all");
+      setSheetDialog(true);
+      return;
+    }
+    if (!payload.data) throw new Error(payload.error || "Could not read this spreadsheet.");
+    const text = JSON.stringify(payload.data);
+    setJson(text);
+    apply(text);
+  }
+
   return (
     <div className="flex flex-col gap-5 px-4 py-5">
       <form
         onSubmit={(event) => {
           event.preventDefault();
+          if (timer.current) window.clearTimeout(timer.current);
           void generate();
         }}
         className="space-y-3"
@@ -73,10 +93,11 @@ export function Composer() {
           onChange={(event) => onPrompt(event.target.value)}
           maxLength={600}
           className="min-h-32 resize-y rounded-xl bg-background leading-6 shadow-none"
-          placeholder="Revenue trends and top customers…"
+          placeholder="Describe the dashboard you want after you import data…"
           onKeyDown={(event) => {
             if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
               event.preventDefault();
+              if (timer.current) window.clearTimeout(timer.current);
               void generate();
             }
           }}
@@ -92,11 +113,11 @@ export function Composer() {
       <Collapsible open={importOpen} onOpenChange={setImportOpen}>
         <CollapsibleTrigger className="flex w-full items-center justify-between text-sm font-medium">
           <span>Bring your own data</span>
-          <Badge variant="outline">{importOpen ? "Hide" : "JSON · SQLite · CSV"}</Badge>
+          <Badge variant="outline">{importOpen ? "Hide" : "JSON · SQLite · CSV · XLSX"}</Badge>
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-4 space-y-3">
           <p className="text-xs leading-5 text-muted-foreground">
-            JSON or a SQLite database for the full workspace. A CSV can be customers (id,name,region,amount,status) or revenue (month,revenue,costs). Up to 500 KB. Amounts are USD. Revenue periods use YYYY-MM.
+            JSON or SQLite for the full workspace. CSV and Excel keep whatever column headers you upload (no fixed schema). Known layouts still power revenue and customer widgets when headers match. Multi-tab Excel can merge every sheet or pick one tab. Up to 500 KB.
           </p>
           <a href="/example-data.json" download className="flex items-center gap-2 text-xs font-medium text-primary underline underline-offset-4">
             <FileJson className="size-4" />
@@ -127,9 +148,9 @@ export function Composer() {
           <input
             ref={file}
             type="file"
-            accept=".json,application/json,.sqlite,.db,.sqlite3,.csv,text/csv"
+            accept=".json,application/json,.sqlite,.db,.sqlite3,.csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
             className="hidden"
-            aria-label="Upload JSON, SQLite, or CSV file"
+            aria-label="Upload JSON, SQLite, CSV, or Excel file"
             onChange={async (event) => {
               const chosen = event.target.files?.[0];
               if (!chosen) return;
@@ -152,6 +173,8 @@ export function Composer() {
                   const text = JSON.stringify(importFromCsv(await chosen.text()));
                   setJson(text);
                   apply(text);
+                } else if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
+                  await uploadSpreadsheet(chosen);
                 } else {
                   const text = await chosen.text();
                   setJson(text);
@@ -176,49 +199,57 @@ export function Composer() {
               <Trash2 />
               Clear dashboard
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                resetDemo();
-                setJson("");
-                setError("");
-              }}
-            >
-              <RotateCcw />
-              Restore demo data
-            </Button>
           </div>
         </CollapsibleContent>
       </Collapsible>
 
-      <Separator />
-
-      <section aria-label="Example prompts" className="space-y-2">
-        <p className="eyebrow">Samples</p>
-        <div className="space-y-1">
-          {examples.map((example) => {
-            const Icon = example.icon;
-            return (
-            <HoverCard key={example.title}>
-              <HoverCardTrigger asChild>
-                <button type="button" className="example-button" onClick={() => startSample(example.text)}>
-                  <span className="flex items-center justify-between gap-2 text-sm font-medium">
-                    <span className="flex items-center gap-2"><Icon className="size-3.5 text-primary" />{example.title}</span>
-                    <ArrowUpRight className="size-3.5 shrink-0 text-muted-foreground" />
-                  </span>
-                  <span className="mt-1 block pl-5 text-xs text-muted-foreground">{example.detail}</span>
-                </button>
-              </HoverCardTrigger>
-              <HoverCardContent className="w-64 text-sm">
-                <p className="font-medium">{example.title}</p>
-                <p className="mt-1 text-muted-foreground">{example.detail}. Opens fictional sample numbers in the canvas.</p>
-              </HoverCardContent>
-            </HoverCard>
-            );
-          })}
-        </div>
-      </section>
+      <Dialog open={sheetDialog} onOpenChange={setSheetDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Choose Excel worksheets</DialogTitle>
+            <DialogDescription>
+              Every tab with data is stored with its own columns. Tabs that match Glance revenue or customer headers also feed those curated metrics.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <label className="flex cursor-pointer items-center gap-2">
+              <input type="radio" name="sheet-mode" checked={sheetMode === "all"} onChange={() => setSheetMode("all")} />
+              All sheets ({sheetNames.length} tabs)
+            </label>
+            <label className="flex cursor-pointer items-center gap-2">
+              <input type="radio" name="sheet-mode" checked={sheetMode === "one"} onChange={() => setSheetMode("one")} />
+              One sheet
+            </label>
+            {sheetMode === "one" && (
+              <div>
+                <Label htmlFor="excel-sheet">Worksheet</Label>
+                <select id="excel-sheet" className="control-input mt-1" value={sheetOne} onChange={(event) => setSheetOne(event.target.value)}>
+                  {sheetNames.map((name) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setSheetDialog(false); excelFile.current = null; }}>Cancel</Button>
+            <Button
+              onClick={() => {
+                const pending = excelFile.current;
+                if (!pending) return;
+                void uploadSpreadsheet(pending, sheetMode === "all" ? "all" : sheetOne)
+                  .then(() => {
+                    setSheetDialog(false);
+                    excelFile.current = null;
+                  })
+                  .catch((caught) => setError(caught instanceof Error ? caught.message : "Could not read this spreadsheet."));
+              }}
+            >
+              Import
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Separator />
 

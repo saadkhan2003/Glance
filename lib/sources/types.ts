@@ -10,6 +10,13 @@ export const SOURCE_IDS = [
 
 export type SourceId = (typeof SOURCE_IDS)[number];
 
+export type ImportTable = {
+  id: string;
+  title: string;
+  columns: string[];
+  rows: Record<string, string | number>[];
+};
+
 export type WorkspaceSnapshot = {
   origin: "sqlite" | "demo" | "import" | "empty";
   updatedAt?: string;
@@ -52,4 +59,5 @@ export type WorkspaceSnapshot = {
     services: { name: string; status: string }[];
   };
   funnel: { stages: { stage: string; value: number }[] };
+  tables: { items: ImportTable[] };
 };

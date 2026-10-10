@@ -6,6 +6,8 @@ import path from "node:path";
 import { demoSnapshot, parseImport, importable, filterSnapshot, EMPTY_FILTERS, availableData } from "../lib/dashboard/data";
 import { importFromSqlite } from "../lib/dashboard/sqlite-import";
 import { importFromCsv } from "../lib/dashboard/csv-import";
+import { importFromXlsx } from "../lib/dashboard/xlsx-import";
+import * as XLSX from "xlsx";
 import { DatabaseSync } from "node:sqlite";
 import { readModel } from "../lib/widgets/model";
 import { widgetById } from "../lib/widgets/definitions";
@@ -34,8 +36,8 @@ test("supplied demo additions produce accurate metrics",()=>{
   assert.equal(model("team-online").value,3);
 });
 test("every exposed widget has finite data",()=>{
-  assert.equal(CURATED_WIDGETS.length,26);
-  for(const w of CURATED_WIDGETS){const m=readModel(demo,w);assert.ok(Number.isFinite(m.value),w.id);if(!["stat","delta"].includes(w.kind))assert.ok(m.rows.length>0,w.id);}
+  assert.equal(CURATED_WIDGETS.length,28);
+  for(const w of CURATED_WIDGETS){const m=readModel(demo,w);assert.ok(Number.isFinite(m.value),w.id);if(w.id.startsWith("import-"))continue;if(!["stat","delta","tabs"].includes(w.kind))assert.ok(m.rows.length>0,w.id);}
 });
 test("JSON roundtrip and partial imports never mix with demo rows",()=>{
   const restored=parseImport(JSON.stringify(importable(demo)));
@@ -74,7 +76,29 @@ test("SQLite and CSV imports keep the booked total, average deal and invoice",()
   rmSync(dir,{recursive:true,force:true});
   const csv=parseImport(JSON.stringify(importFromCsv("id,name,region,amount,status\n1,Acme Corp,NA,12400,Active\n")));
   assert.equal(model("booked-revenue",csv).value,12400);
-  assert.throws(()=>importFromCsv("name,amount\nAcme,1\n"));
+  const arbitrary=importFromCsv("name,amount\nAcme,1\n");
+  const dyn=parseImport(JSON.stringify(arbitrary));
+  assert.equal(dyn.tables.items[0].columns[0],"name");
+  assert.equal(dyn.customers.rows.length,0);
+  const sheet=XLSX.utils.aoa_to_sheet([["month","revenue","costs"],["2026-07",76000,36000]]);
+  const book=XLSX.utils.book_new();XLSX.utils.book_append_sheet(book,sheet,"Data");
+  const bytes=new Uint8Array(XLSX.write(book,{type:"array",bookType:"xlsx"}));
+  const single=importFromXlsx(bytes);
+  assert.ok("data" in single);
+  const xlsx=parseImport(JSON.stringify(single.data));
+  assert.equal(xlsx.revenue.current,76000);
+  const customers=XLSX.utils.aoa_to_sheet([["id","name","region","amount","status"],["1","Acme Corp","NA",12400,"Active"]]);
+  const revenue=XLSX.utils.aoa_to_sheet([["month","revenue","costs"],["2026-07",76000,36000]]);
+  const multi=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(multi,customers,"Customers");
+  XLSX.utils.book_append_sheet(multi,revenue,"Revenue");
+  const multiBytes=new Uint8Array(XLSX.write(multi,{type:"array",bookType:"xlsx"}));
+  assert.deepEqual(importFromXlsx(multiBytes).sheets,["Customers","Revenue"]);
+  const merged=importFromXlsx(multiBytes,"all");
+  assert.ok("data" in merged);
+  const both=parseImport(JSON.stringify(merged.data));
+  assert.equal(both.customers.rows.length,1);
+  assert.equal(both.revenue.current,76000);
 });
 test("revenue imports sort periods while keeping numbers aligned",()=>{
   const s=parseImport(JSON.stringify({revenue:{labels:["2026-07","2026-01"],values:[76,42],costs:[36,28],goal:100}}));

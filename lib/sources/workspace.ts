@@ -124,5 +124,6 @@ export function loadWorkspace(prompt: string, focus: SourceId = "workspace"): Wo
     regions: { regions },
     sla: { ...sla, services },
     funnel: { stages: funnel },
+    tables: { items: [] },
   };
 }

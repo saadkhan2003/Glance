@@ -4,23 +4,20 @@ A question becomes a dashboard.
 
 Glance turns a short prompt into a small set of vetted views. Numbers are calculated in the app. Jev, when enabled, only chooses which views to show. If the model is unavailable, a local selection still renders.
 
-**Live demo:** [https://exercises-scales-nsw-objects.trycloudflare.com](https://exercises-scales-nsw-objects.trycloudflare.com)
-
-The demo is served from this project through a Cloudflare quick tunnel. It stays up while this machine and the tunnel process are running. It is a temporary address, not a custom domain, and it can change if the tunnel is restarted.
+**Live demo:** [https://glance.msaad-official6.workers.dev](https://glance.msaad-official6.workers.dev)
 
 ## What you can do
 
-The page opens empty. Nothing is loaded until you ask or import.
+The page opens empty. Import data before asking for a dashboard.
 
 - Type a question in **Ask**. After a short pause the canvas updates on its own.
-- Open a **Sample** for revenue, accounts at risk, billing, or team operations. Sample numbers are fictional and appear only after you choose them.
-- Import your own JSON, or upload a file, from **Bring your own data**.
+- Import JSON, SQLite, CSV, or Excel from **Bring your own data**. Excel files with multiple sheets can import all sheets or one selected sheet.
 - Filter revenue by month and customers by region or status.
 - Drag a card to reorder it. Arrow controls remain for keyboard use.
 - Export the visible, filtered view as CSV, or download the source JSON.
 - Save up to 10 dashboards in this browser and reopen them after a refresh.
 
-Saved dashboards, filters, and imported records stay in this browser. They are not stored on the server and do not follow you to another device.
+Imported records stay in this browser. Up to 10 saved dashboards are stored in its local storage; unsaved work is lost on refresh. Nothing follows you to another device.
 
 ## Run it yourself
 
@@ -74,26 +71,28 @@ Download [example-data.json](public/example-data.json), or open `/example-data.j
 }
 ```
 
-Accepted sections: `revenue`, `customers`, `invoice`, `tasks`, `team`, `activity`, `reviews`, `regions`, `sla`, `funnel`.
+Accepted JSON sections: `revenue`, `customers`, `invoice`, `tasks`, `team`, `activity`, `reviews`, `regions`, `sla`, `funnel`, `tables`.
 
-Customer statuses are `Active`, `Pending`, or `At risk`. Customer IDs must be unique. Region shares cannot total more than 100. A section you leave out stays empty. An import does not merge with the sample records.
+CSV, Excel, and SQLite imports preserve their original columns as dynamic tables. Recognized revenue and customer layouts also power the matching metric widgets.
 
-The bundled sample lives in `lib/dashboard/demo.json`. On that sample, booked customer revenue is $101,000, the average deal is $12,625, and invoice INV-2048 totals $3,396.
+Customer statuses are `Active`, `Pending`, or `At risk`. Customer IDs must be unique. Region shares cannot total more than 100. A section you leave out stays empty. An import does not merge with other records already in the workspace.
+
+`lib/dashboard/demo.json` is used only by automated tests, not loaded in the UI.
 
 ## How it is built
 
 | Piece | Role |
 | --- | --- |
-| `components/Composer.tsx` | Sidebar: prompt, samples, import, saved views |
+| `components/Composer.tsx` | Sidebar: prompt, import, saved views |
 | `components/LiveDashboard.tsx` | Canvas, filters, export, drag-to-reorder |
 | `components/data-provider.tsx` | Data, selection, and browser storage |
 | `lib/dashboard/data.ts` | Import validation and filters |
-| `lib/dashboard/planner.ts` | Allowlist of 26 widgets and the local plan |
+| `lib/dashboard/planner.ts` | Allowlist of 28 widgets and the local plan |
 | `lib/widgets/model.ts` | Metric calculations |
 | `app/api/dashboard/route.ts` | Bounded Jev request, timeout, cache, and fallback |
 | `lib/dashboard/export.ts` | CSV export with spreadsheet-formula escaping |
 
-Those 26 widgets can be selected. Older definitions remain in the repo and are not part of this demo.
+Those 28 widgets can be selected. Other definitions remain in the repo but are not yet part of the curated set.
 
 ## Verification
 
@@ -115,5 +114,17 @@ Glance is a working demo.
 - AI is off unless `AI_ENABLED=true`. Failures return the local dashboard.
 - Paid requests are capped per process: 20 uncached calls a minute, and 100 a day by default. Set a provider credit limit as well. The daily counter is a single-process file, not a shared billing system.
 - Year-over-year comparison is not calculated. The app says so when a prompt asks for it.
+
+## Cloudflare Workers
+
+Public Workers deploy (no API key on the edge; `AI_ENABLED=false` in `wrangler.jsonc`):
+
+```sh
+npx wrangler logout
+npx wrangler login
+npm run deploy:cf
+```
+
+Confirm the selected account with `npx wrangler whoami` before deploying. The public URL uses that account's Workers subdomain.
 
 Deployment notes for a single server are in [DEPLOYMENT.md](DEPLOYMENT.md). The three-minute pitch is in [DEMO_SCRIPT.md](DEMO_SCRIPT.md).

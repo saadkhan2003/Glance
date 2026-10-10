@@ -28,7 +28,21 @@ export const importSchema = z.object({
   regions: z.object({ regions: rows(z.object({ region: text, value: amount.max(100) })).refine(v => v.reduce((s,r) => s+r.value,0) <= 100.01, "Region percentages cannot total more than 100") }).optional(),
   sla: z.object({ uptime: amount.max(100), target: amount.max(100), incidents: z.number().int().nonnegative(), level: z.enum(["warning", "default"]), message: text, services: rows(z.object({ name: text, status: z.enum(["ok", "degraded"]) })) }).optional(),
   funnel: z.object({ stages: rows(z.object({ stage: text, value: z.number().int().nonnegative().max(1e12) })) }).optional(),
-}).strict().refine(v => Object.keys(v).length > 0, "Include at least one dataset: revenue, customers, invoice, tasks, team, reviews, activity, regions, sla or funnel");
+  tables: z.object({
+    items: rows(z.object({
+      id: text,
+      title: text,
+      columns: rows(text),
+      rows: rows(z.record(z.union([z.string(), z.number()]))),
+    })),
+  }).optional(),
+}).strict().superRefine((v, ctx) => {
+  const hasTables = (v.tables?.items?.length ?? 0) > 0;
+  const hasStructured = Object.keys(v).some((key) => key !== "tables");
+  if (!hasStructured && !hasTables) {
+    ctx.addIssue({ code: "custom", message: "Include at least one dataset or a tables.items array with your uploaded columns." });
+  }
+});
 
 export function demoSnapshot(): WorkspaceSnapshot { return structuredClone(demo) as WorkspaceSnapshot; }
 export function emptySnapshot(): WorkspaceSnapshot {
@@ -39,6 +53,7 @@ export function emptySnapshot(): WorkspaceSnapshot {
     tasks: { columns: [] }, team: { members: [] }, activity: { items: [] }, reviews: { reviews: [] },
     regions: { regions: [] }, sla: { uptime: 0, target: 0, incidents: 0, level: "default", message: "", services: [] },
     funnel: { stages: [] },
+    tables: { items: [] },
   };
 }
 export function parseImport(input: string): WorkspaceSnapshot {
@@ -54,6 +69,7 @@ export function parseImport(input: string): WorkspaceSnapshot {
     customers: { rows: [] }, invoice: { number: "", client: "", due: "", lines: [] },
     tasks: { columns: [] }, team: { members: [] }, activity: { items: [] }, reviews: { reviews: [] },
     regions: { regions: [] }, sla: { uptime: 0, target: 0, incidents: 0, level: "default", message: "No service data", services: [] }, funnel: { stages: [] },
+    tables: { items: [] },
     ...data,
   } as WorkspaceSnapshot;
   const order = snap.revenue.labels.map((label, i) => ({ label, value: snap.revenue.values[i], cost: snap.revenue.costs[i] })).sort((a,b) => a.label.localeCompare(b.label));
@@ -68,7 +84,7 @@ export function importable(s: WorkspaceSnapshot) {
   return Object.fromEntries(Object.entries(datasets).filter(([key]) => availableData(s).includes(key)));
 }
 export function availableData(s: WorkspaceSnapshot): string[] {
-  return [s.revenue.labels.length && "revenue", s.customers.rows.length && "customers", s.invoice.number && "invoice", s.tasks.columns.length && "tasks", s.team.members.length && "team", s.activity.items.length && "activity", s.reviews.reviews.length && "reviews", s.regions.regions.length && "regions", (s.sla.services.length || s.sla.target) && "sla", s.funnel.stages.length && "funnel"].filter(Boolean) as string[];
+  return [s.revenue.labels.length && "revenue", s.customers.rows.length && "customers", s.invoice.number && "invoice", s.tasks.columns.length && "tasks", s.team.members.length && "team", s.activity.items.length && "activity", s.reviews.reviews.length && "reviews", s.regions.regions.length && "regions", (s.sla.services.length || s.sla.target) && "sla", s.funnel.stages.length && "funnel", s.tables.items.length && "tables"].filter(Boolean) as string[];
 }
 export const filtersSchema = z.object({ from: z.string().regex(/^(|\d{4}-(0[1-9]|1[0-2]))$/), to: z.string().regex(/^(|\d{4}-(0[1-9]|1[0-2]))$/), region: z.string().max(200), status: z.enum(["all", "Active", "Pending", "At risk"]) });
 export type Filters = z.infer<typeof filtersSchema>;

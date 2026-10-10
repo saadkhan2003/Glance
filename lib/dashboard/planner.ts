@@ -2,14 +2,14 @@ import { z } from "zod";
 import { WIDGETS } from "@/lib/widgets/definitions";
 import { SOURCE_IDS, type SourceId } from "@/lib/sources/types";
 
-const IDS = ["revenue-headline", "revenue-mom", "revenue-goal", "revenue-line", "rev-cost-stack", "revenue-table", "margin-headline", "booked-revenue", "customer-count", "average-deal", "largest-account", "customer-table", "risk-table", "region-pie", "region-table", "region-compare", "invoice-card", "invoice-lines-table", "funnel-chart", "funnel-table", "kanban-board", "team-roster", "activity-timeline", "service-list", "sla-alert", "review-quotes"];
+const IDS = ["revenue-headline", "revenue-mom", "revenue-goal", "revenue-line", "rev-cost-stack", "revenue-table", "margin-headline", "booked-revenue", "customer-count", "average-deal", "largest-account", "customer-table", "risk-table", "region-pie", "region-table", "region-compare", "invoice-card", "invoice-lines-table", "funnel-chart", "funnel-table", "kanban-board", "team-roster", "activity-timeline", "service-list", "sla-alert", "review-quotes", "import-sheet-table", "import-workbook"];
 export const CURATED_WIDGETS = IDS.map(id=>WIDGETS.find(w=>w.id===id)!);
 export const planSchema = z.object({ layout: z.enum(["overview", "balanced", "wide"]), widgets: z.array(z.string()).min(1).max(8).refine(ids=>new Set(ids).size===ids.length) });
 export type DashboardPlan = z.infer<typeof planSchema>;
 export type Selection = DashboardPlan & { mode: "local" | "ai"; message: string; ms?: number };
-export const requestSchema = z.object({ prompt: z.string().trim().min(3).max(600), source: z.enum(SOURCE_IDS), available: z.array(z.enum(["revenue", "customers", "invoice", "tasks", "team", "activity", "reviews", "regions", "sla", "funnel"])).min(1).max(10) }).strict();
+export const requestSchema = z.object({ prompt: z.string().trim().min(3).max(600), source: z.enum(SOURCE_IDS), available: z.array(z.enum(["revenue", "customers", "invoice", "tasks", "team", "activity", "reviews", "regions", "sla", "funnel", "tables"])).min(1).max(11) }).strict();
 export type PlanRequest = z.infer<typeof requestSchema>;
-export function datasetFor(slice: string) { return slice.startsWith("customers") ? "customers" : slice.startsWith("tasks") ? "tasks" : slice.startsWith("team") ? "team" : slice === "services" ? "sla" : slice === "costs" || slice === "margin" ? "revenue" : slice; }
+export function datasetFor(slice: string) { return slice.startsWith("customers") ? "customers" : slice.startsWith("tasks") ? "tasks" : slice.startsWith("team") ? "team" : slice === "services" ? "sla" : slice === "tables-all" ? "tables" : slice === "costs" || slice === "margin" ? "revenue" : slice; }
 const focusDataset: Record<SourceId, string> = { workspace: "", revenue: "revenue", customers: "customers", invoices: "invoice", tasks: "tasks", team: "team", reviews: "reviews" };
 export function candidatesFor(input: PlanRequest) {
   return CURATED_WIDGETS.filter(w=>input.available.includes(datasetFor(w.slice) as PlanRequest["available"][number]) && (!focusDataset[input.source] || datasetFor(w.slice) === focusDataset[input.source]));
@@ -26,8 +26,9 @@ export function localPlan(input: PlanRequest): Selection {
     team: /team|people|roster|online/.test(p) ? 8 : 0,
     sla: /service|health|sla|uptime|incident/.test(p) ? 8 : 0,
     reviews: /review|rating|feedback/.test(p) ? 8 : 0,
+    tables: /sheet|table|column|upload|spreadsheet|csv|excel|workbook|data/.test(p) ? 6 : 2,
   };
-  const preferences: Record<string, number> = { "revenue-headline": 2, "revenue-line": 3, "rev-cost-stack": 4, "revenue-table": 2, "customer-table": 3, "region-pie": 2, "customer-count": 1 };
+  const preferences: Record<string, number> = { "revenue-headline": 2, "revenue-line": 3, "rev-cost-stack": 4, "revenue-table": 2, "customer-table": 3, "region-pie": 2, "customer-count": 1, "import-workbook": 5, "import-sheet-table": 4 };
   if (/risk/.test(p)) preferences["risk-table"] = 15;
   if (/average/.test(p)) preferences["average-deal"] = 15;
   if (/largest|biggest|top/.test(p)) preferences["largest-account"] = 12;

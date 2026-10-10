@@ -3,6 +3,8 @@ import { DatabaseSync } from "node:sqlite";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { MAX_IMPORT_BYTES } from "@/lib/dashboard/data";
+import { buildDynamicTable } from "@/lib/dashboard/sheet-import";
+import type { ImportTable } from "@/lib/sources/types";
 
 const MONTHS: Record<string, string> = {
   jan: "2026-01", feb: "2026-02", mar: "2026-03", apr: "2026-04",
@@ -23,10 +25,20 @@ function tablesOf(db: DatabaseSync) {
 }
 
 function columnsOf(db: DatabaseSync, table: string) {
-  return new Set((db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map((column) => column.name));
+  return (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map((column) => column.name);
 }
 
-/** Read a Glance SQLite file. Only known tables are selected. */
+function dynamicTable(db: DatabaseSync, table: string): ImportTable | null {
+  const columns = columnsOf(db, table);
+  if (!columns.length) return null;
+  const quoted = columns.map((name) => `"${name.replace(/"/g, '""')}"`).join(", ");
+  const data = db.prepare(`SELECT ${quoted} FROM "${table.replace(/"/g, '""')}" LIMIT 1000`).all() as Record<string, unknown>[];
+  if (!data.length) return null;
+  const rows = data.map((row) => columns.map((column) => String(row[column] ?? "")));
+  return buildDynamicTable(table, columns, rows);
+}
+
+/** Read a SQLite file: Glance tables map to curated widgets; every table is also kept as dynamic columns. */
 export function importFromSqlite(bytes: Uint8Array) {
   if (bytes.byteLength > MAX_IMPORT_BYTES) throw new Error("Database must be smaller than 500 KB");
   if (!Buffer.from(bytes.subarray(0, 15)).toString("utf8").startsWith("SQLite format 3")) {
@@ -39,8 +51,14 @@ export function importFromSqlite(bytes: Uint8Array) {
   try {
     const tables = tablesOf(db);
     const out: Record<string, unknown> = {};
+    const tableItems: ImportTable[] = [];
+    for (const name of tables) {
+      if (name === "goal") continue;
+      const dynamic = dynamicTable(db, name);
+      if (dynamic) tableItems.push(dynamic);
+    }
     if (tables.has("monthly_revenue")) {
-      const columns = columnsOf(db, "monthly_revenue");
+      const columns = new Set(columnsOf(db, "monthly_revenue"));
       const rows = db.prepare("SELECT month, revenue, costs FROM monthly_revenue").all() as { month: string; revenue: number; costs: number }[];
       const goalRow = tables.has("goal") ? db.prepare("SELECT goal FROM goal LIMIT 1").get() as { goal: number } | undefined : undefined;
       const goal = columns.has("goal")
@@ -92,7 +110,10 @@ export function importFromSqlite(bytes: Uint8Array) {
       const stages = db.prepare("SELECT stage, value FROM funnel ORDER BY ord, rowid").all();
       if (stages.length) out.funnel = { stages };
     }
-    if (!Object.keys(out).length) throw new Error("No Glance tables found. Expected monthly_revenue, customers, invoice_lines, tasks, team, activity, reviews, regions, sla, or funnel.");
+    if (tableItems.length) out.tables = { items: tableItems };
+    if (!Object.keys(out).length) {
+      throw new Error("This database has no readable tables. Add a header row and at least one data row per sheet.");
+    }
     return out;
   } finally {
     db.close();

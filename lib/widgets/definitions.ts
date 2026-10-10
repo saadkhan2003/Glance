@@ -46,7 +46,9 @@ export type WidgetSlice =
   | "regions"
   | "sla"
   | "funnel"
-  | "services";
+  | "services"
+  | "tables"
+  | "tables-all";
 
 export type WidgetSpec = {
   id: string;
@@ -156,6 +158,8 @@ export const WIDGETS: WidgetSpec[] = [
   w("invoice-form", "commerce", "form", "invoice", "Invoice summary", "Key-value summary of the open invoice."),
   w("customer-form", "commerce", "form", "customers-top", "Account summary", "Key-value summary of the largest account."),
   w("review-quotes", "commerce", "quotes", "reviews", "Review quotes", "Quoted customer reviews with star ratings."),
+  w("import-sheet-table", "records", "table", "tables", "Imported sheet", "Scrollable table using whatever columns were in your upload."),
+  w("import-workbook", "records", "tabs", "tables-all", "Workbook tabs", "One tab per imported sheet, each with its own columns."),
   w("review-list", "commerce", "list", "reviews", "Review list", "Simple list of review text."),
   w("pricing-from-deals", "commerce", "ranked", "customers-top", "Deal ladder", "Ladder of deal sizes from the customer book."),
 

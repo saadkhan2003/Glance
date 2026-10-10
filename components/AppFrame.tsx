@@ -1,28 +1,21 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BarChart3, HeartPulse, Receipt, ShieldAlert } from "lucide-react";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarTrigger } from "@/components/ui/menubar";
-import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Composer } from "@/components/Composer";
 import { InspectorStrip } from "@/components/InspectorStrip";
 import { LiveDashboard } from "@/components/LiveDashboard";
 import { useWorkspaceData } from "@/components/data-provider";
 
-const rail = [
-  { label: "Quick revenue", text: "Revenue trend and top customers", icon: BarChart3 },
-  { label: "Quick risk", text: "At-risk customers and average deal size", icon: ShieldAlert },
-  { label: "Quick billing", text: "Invoice for Acme and conversion funnel", icon: Receipt },
-  { label: "Quick team", text: "Team roster, kanban tasks and service health", icon: HeartPulse },
-];
-
 export function AppFrame(){
-  const {loading,raw,startSample}=useWorkspaceData();
+  const {loading,raw}=useWorkspaceData();
   const [open,setOpen]=useState(true);
   useEffect(()=>{ if (localStorage.getItem("glance.sidebar")==="closed") setOpen(false); },[]);
   function toggle(){ setOpen((value)=>{ const next=!value; localStorage.setItem("glance.sidebar", next?"open":"closed"); return next; }); }
+  const workspaceLabel=raw.origin==="empty"?"Empty workspace":"Your data";
+  const statusLabel=loading?"Selecting views":raw.origin==="empty"?"No data loaded":"Your imported data";
   return <div className={open?"app-shell":"app-shell is-collapsed"}>
     <a href="#dashboard" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-background focus:p-3">Skip to dashboard</a>
     <aside className="side">
@@ -35,7 +28,6 @@ export function AppFrame(){
       </div>
       {open?<div className="side-scroll"><Composer/></div>:<div className="side-rail">
         <button type="button" aria-label="Expand sidebar" className="rounded-lg p-2 text-muted-foreground hover:bg-muted" onClick={toggle}><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
-        {rail.map((item)=>{ const Icon=item.icon; return <Tooltip key={item.label}><TooltipTrigger asChild><button type="button" aria-label={item.label} className="rounded-xl border bg-background p-2 text-muted-foreground hover:text-foreground" onClick={()=>startSample(item.text)}><Icon className="size-4"/></button></TooltipTrigger><TooltipContent side="right">{item.label}</TooltipContent></Tooltip>; })}
       </div>}
     </aside>
     <div className="stage min-w-0">
@@ -45,7 +37,7 @@ export function AppFrame(){
             <BreadcrumbList>
               <BreadcrumbItem>Glance</BreadcrumbItem>
               <BreadcrumbSeparator />
-              <BreadcrumbItem><BreadcrumbPage>{raw.origin==="empty"?"Empty workspace":raw.origin==="demo"?"Sample":"Import"}</BreadcrumbPage></BreadcrumbItem>
+              <BreadcrumbItem><BreadcrumbPage>{workspaceLabel}</BreadcrumbPage></BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
           <Menubar className="h-8 border-0 bg-transparent p-0 shadow-none">
@@ -57,25 +49,11 @@ export function AppFrame(){
               </MenubarContent>
             </MenubarMenu>
           </Menubar>
-          <NavigationMenu>
-            <NavigationMenuList>
-              <NavigationMenuItem>
-                <NavigationMenuTrigger className="h-8 bg-transparent px-3 text-xs">Samples</NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className="grid w-64 gap-1 p-2">
-                    {rail.map((item) => (
-                      <li key={item.label}><button type="button" className="w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent" onClick={() => startSample(item.text)}>{item.label}</button></li>
-                    ))}
-                  </ul>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
         </div>
-        <span className="status-pill"><span className={`size-1.5 rounded-full ${loading?"animate-pulse bg-amber-500":"bg-emerald-600"}`}/>{loading?"Selecting views":raw.origin==="empty"?"No data loaded":raw.origin==="demo"?"Sample workspace":"Your imported data"}</span>
+        <span className="status-pill"><span className={`size-1.5 rounded-full ${loading?"animate-pulse bg-amber-500":"bg-emerald-600"}`}/>{statusLabel}</span>
       </header>
       <main id="dashboard" tabIndex={-1} className="stage-main outline-none"><LiveDashboard/><InspectorStrip/></main>
-      <footer className="stage-foot">Glance · Numbers appear only after you import data or open a sample · USD</footer>
+      <footer className="stage-foot">Glance · Import your data to see numbers · USD</footer>
     </div>
   </div>;
 }
