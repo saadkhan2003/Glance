@@ -53,6 +53,9 @@ test("import validates errors and changes metrics", async ({ page }) => {
     JSON.stringify({ customers: { rows: [{ id: "x", name: "Imported account", region: "EU", amount: 1500.25, status: "Active" }] } }),
   );
   await page.getByRole("button", { name: "Apply JSON" }).click();
+  await expect(page.getByRole("heading", { name: "Ready to generate" })).toBeVisible();
+  await page.getByLabel("Ask").fill("Top customers");
+  await page.getByRole("button", { name: "Generate dashboard" }).click();
   await expect(page.getByRole("region", { name: "Customer table", exact: true })).toContainText("Imported account");
   await expect(page.getByRole("region", { name: "Customer count", exact: true })).toContainText("1");
   await expect(page.getByLabel("Source", { exact: true })).toHaveCount(0);
@@ -67,10 +70,27 @@ test("uploaded table fields filter rows immediately", async ({ page }) => {
   await page.getByLabel("JSON data", { exact: true }).fill(JSON.stringify({ tables: { items: [{ id: "contacts", title: "Contacts", columns: ["Name", "City"], rows: [{ Name: "Lina", City: "Lahore" }, { Name: "Sam", City: "Karachi" }] }] } }));
   await page.getByRole("button", { name: "Apply JSON" }).click();
   await expect(page.getByLabel("Contacts · City")).toBeVisible();
+  await page.getByLabel("Ask").fill("Show imported sheet");
+  await page.getByRole("button", { name: "Generate dashboard" }).click();
   await page.getByLabel("Contacts · City").fill("lah");
   await expect(page.getByRole("region", { name: "Imported sheet", exact: true })).toContainText("Lina");
   await expect(page.getByRole("region", { name: "Imported sheet", exact: true })).not.toContainText("Sam");
   await expect(page.getByText("Contacts: 1 rows")).toBeVisible();
+});
+
+test("typing and importing do not request or render a dashboard", async ({ page }) => {
+  let requests = 0;
+  await page.route("**/api/dashboard", async route => { requests++; await route.continue(); });
+  await page.goto("/");
+  await importWorkspace(page);
+  await page.getByLabel("Ask").fill("Revenue trend and top customers");
+  await page.waitForTimeout(600);
+  expect(requests).toBe(0);
+  await expect(page.getByRole("heading", { name: "Ready to generate" })).toBeVisible();
+  await expect(page.locator("[data-widget]")).toHaveCount(0);
+  await page.getByRole("button", { name: "Generate dashboard" }).click();
+  await expect.poll(() => requests).toBe(1);
+  await expect(page.locator("[data-widget]")).not.toHaveCount(0);
 });
 
 test("manual layout, widgets and offline fallback", async ({ page }) => {

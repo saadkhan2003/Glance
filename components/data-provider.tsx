@@ -35,6 +35,7 @@ export function DataProvider({children}:{children:ReactNode}) {
     const trimmed=text.trim();
     if(trimmed.length<3 || text.length>600) {toast.error("Use a prompt between 3 and 600 characters.");return;}
     if(!availableData(data).length) {toast.error("Import data first, then generate a dashboard.");return;}
+    if(request.current) return;
     stopRequest();
     const input:PlanRequest={prompt:trimmed,source:nextSource,available:availableData(data) as PlanRequest["available"]};
     setPrompt(input.prompt);setDraft(text);setSourceValue(nextSource);
@@ -66,8 +67,8 @@ export function DataProvider({children}:{children:ReactNode}) {
   function importData(text:string){
     const next=parseImport(text);
     if(!availableData(next).length) throw new Error("Import at least one nonempty dataset.");
-    stopRequest();setRaw(next);setFilters(EMPTY_FILTERS);setSourceValue("workspace");
-    setSelection({...localPlan({prompt,source:"workspace",available:availableData(next) as PlanRequest["available"]}),message:"Imported data · generate to ask Jev for a new selection"});
+    stopRequest();setRaw(next);setPrompt("");setFilters(EMPTY_FILTERS);setSourceValue("workspace");
+    setSelection({layout:"overview",widgets:[],mode:"local",message:"Data imported. Click Generate dashboard to choose views."});
     toast.success("Data imported. Your data stays in this browser.");
   }
   function clearDashboard(){stopRequest();setRaw(emptySnapshot());setPrompt("");setDraft("");setFilters(EMPTY_FILTERS);setSourceValue("workspace");setSelection({layout:"overview",widgets:[],mode:"local",message:"Import your data, then ask for a dashboard."});toast.success("Dashboard cleared");}

@@ -10,7 +10,7 @@ Glance turns a short prompt into a small set of vetted views. Numbers are calcul
 
 The page opens empty. Import data before asking for a dashboard.
 
-- Type a question in **Ask**. After a short pause the canvas updates on its own.
+- Type a question in **Ask**, then click **Generate dashboard**. Importing and typing never request Jev or render views automatically.
 - Import JSON, SQLite, CSV, or Excel from **Bring your own data**. Excel files with multiple sheets can import all sheets or one selected sheet.
 - Filter revenue by month and customers by region or status.
 - Drag a card to reorder it. Arrow controls remain for keyboard use.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { FileJson, FolderOpen, Trash2, Upload } from "lucide-react";
 import { useWorkspaceData } from "@/components/data-provider";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -26,23 +26,6 @@ export function Composer() {
   const [sheetNames, setSheetNames] = useState<string[]>([]);
   const [sheetMode, setSheetMode] = useState<"all" | "one">("all");
   const [sheetOne, setSheetOne] = useState("");
-  const timer = useRef<number | null>(null);
-  const generateRef = useRef(generate);
-  generateRef.current = generate;
-
-  useEffect(() => () => {
-    if (timer.current) window.clearTimeout(timer.current);
-  }, []);
-
-  function onPrompt(value: string) {
-    setDraft(value);
-    if (timer.current) window.clearTimeout(timer.current);
-    if (value.trim().length < 3) return;
-    timer.current = window.setTimeout(() => {
-      void generateRef.current(value);
-    }, 300);
-  }
-
   function apply(text = json) {
     try {
       importData(text);
@@ -78,7 +61,6 @@ export function Composer() {
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          if (timer.current) window.clearTimeout(timer.current);
           void generate();
         }}
         className="space-y-3"
@@ -90,22 +72,21 @@ export function Composer() {
         <Textarea
           id="prompt"
           value={draft}
-          onChange={(event) => onPrompt(event.target.value)}
+          onChange={(event) => setDraft(event.target.value)}
           maxLength={600}
           className="min-h-32 resize-y rounded-xl bg-background leading-6 shadow-none"
           placeholder="Describe the dashboard you want after you import data…"
           onKeyDown={(event) => {
             if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
               event.preventDefault();
-              if (timer.current) window.clearTimeout(timer.current);
               void generate();
             }
           }}
         />
-        <Button className="w-full" type="submit" disabled={draft.trim().length < 3}>
+        <Button className="w-full" type="submit" disabled={draft.trim().length < 3 || loading}>
           {loading ? "Updating" : "Generate dashboard"}
         </Button>
-        <p className="text-[11px] leading-5 text-muted-foreground">The dashboard updates as you type. Only the prompt is sent for selection. <Kbd>Ctrl</Kbd> <Kbd>Enter</Kbd></p>
+        <p className="text-[11px] leading-5 text-muted-foreground">Views generate only when you click the button or press <Kbd>Ctrl</Kbd> <Kbd>Enter</Kbd>. Only the prompt is sent for selection.</p>
       </form>
 
       <Separator />
