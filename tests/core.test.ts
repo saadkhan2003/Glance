@@ -46,6 +46,11 @@ test("JSON roundtrip and partial imports never mix with demo rows",()=>{
   assert.equal(customerOnly.revenue.labels.length,0);
   assert.deepEqual(availableData(customerOnly),["customers"]);
   assert.equal(model("booked-revenue",customerOnly).value,1.25);
+  const pastedArray=parseImport(JSON.stringify([{name:"Acme",score:42},{name:"Globex",score:38}]));
+  assert.deepEqual(pastedArray.tables.items[0].columns,["name","score"]);
+  assert.equal(pastedArray.tables.items[0].rows.length,2);
+  assert.throws(()=>parseImport("[]"));
+  assert.throws(()=>parseImport(JSON.stringify(["not a record"])));
 });
 test("import rejects malformed, oversized, mismatched and misleading input",()=>{
   for(const data of ["{", "{}",'{"foo":1}',JSON.stringify({revenue:{labels:["Jul"],values:[1],costs:[1],goal:100}}),JSON.stringify({revenue:{labels:["2026-07"],values:[],costs:[1],goal:100}}),JSON.stringify({regions:{regions:[{region:"A",value:80},{region:"B",value:32}]}})," ".repeat(500001)])assert.throws(()=>parseImport(data));

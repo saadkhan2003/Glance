@@ -79,6 +79,15 @@ test("uploaded table fields filter rows immediately", async ({ page }) => {
   await expect(page.getByText("Contacts: 1 rows")).toBeVisible();
 });
 
+test("pasted JSON records import without locking the editor", async ({ page }) => {
+  await page.goto("/");
+  await page.getByText("Bring your own data", { exact: true }).click();
+  await page.getByLabel("JSON data", { exact: true }).fill(JSON.stringify([{Name:"Lina",Score:42},{Name:"Sam",Score:38}]));
+  await page.getByRole("button", { name: "Apply JSON" }).click();
+  await expect(page.getByLabel("Pasted JSON · Name")).toBeVisible();
+  await expect(page.getByText("Expected object, received array")).toHaveCount(0);
+});
+
 test("customer CSV does not show duplicate column filters and can be cleared", async ({ page }) => {
   await page.goto("/");
   await page.getByText("Bring your own data", { exact: true }).click();

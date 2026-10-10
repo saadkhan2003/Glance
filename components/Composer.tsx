@@ -24,7 +24,8 @@ const SAMPLE_QUESTIONS = [
 
 export function Composer() {
   const { draft, setDraft, generate, loading, raw, importData, loadSample, clearDashboard, saved, load, remove } = useWorkspaceData();
-  const [json, setJson] = useState("");
+  const jsonInput = useRef<HTMLTextAreaElement>(null);
+  const [hasJson, setHasJson] = useState(false);
   const [error, setError] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const file = useRef<HTMLInputElement>(null);
@@ -35,7 +36,11 @@ export function Composer() {
   const [sheetOne, setSheetOne] = useState("");
   const [selectedSheets, setSelectedSheets] = useState<string[]>([]);
   const [sampleLoading, setSampleLoading] = useState(false);
-  function apply(text = json) {
+  function replaceJson(text: string) {
+    if (jsonInput.current) jsonInput.current.value = text;
+    setHasJson(text.trim().length > 0);
+  }
+  function apply(text = jsonInput.current?.value ?? "") {
     try {
       importData(text);
       setError("");
@@ -63,7 +68,7 @@ export function Composer() {
     }
     if (!payload.data) throw new Error(payload.error || "Could not read this spreadsheet.");
     const text = JSON.stringify(payload.data);
-    setJson(text);
+    replaceJson(text);
     apply(text);
   }
 
@@ -131,8 +136,9 @@ export function Composer() {
           <Label htmlFor="json-data">JSON data</Label>
           <Textarea
             id="json-data"
-            value={json}
-            onChange={(event) => setJson(event.target.value)}
+            ref={jsonInput}
+            defaultValue=""
+            onChange={(event) => setHasJson(event.target.value.trim().length > 0)}
             placeholder={'{"customers":{"rows":[…]}}'}
             className="min-h-28 bg-background font-mono text-xs"
           />
@@ -142,7 +148,7 @@ export function Composer() {
             </p>
           )}
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => apply()} disabled={!json.trim()}>
+            <Button size="sm" onClick={() => apply()} disabled={!hasJson}>
               Apply JSON
             </Button>
             <Button size="sm" variant="outline" onClick={() => file.current?.click()}>
@@ -172,17 +178,17 @@ export function Composer() {
                   const payload = await response.json() as { data?: unknown; error?: string };
                   if (!response.ok || !payload.data) throw new Error(payload.error || "Could not read this database.");
                   const text = JSON.stringify(payload.data);
-                  setJson(text);
+                  replaceJson(text);
                   apply(text);
                 } else if (name.endsWith(".csv")) {
                   const text = JSON.stringify(importFromCsv(await chosen.text()));
-                  setJson(text);
+                  replaceJson(text);
                   apply(text);
                 } else if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
                   await uploadSpreadsheet(chosen);
                 } else {
                   const text = await chosen.text();
-                  setJson(text);
+                  replaceJson(text);
                   apply(text);
                 }
               } catch (caught) {
@@ -197,7 +203,7 @@ export function Composer() {
               variant="ghost"
               onClick={() => {
                 clearDashboard();
-                setJson("");
+                replaceJson("");
                 setError("");
               }}
             >

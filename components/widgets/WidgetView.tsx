@@ -24,7 +24,7 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { WidgetSpec } from "@/lib/widgets/definitions";
-import { availableData } from "@/lib/dashboard/data";
+import { dashboardAvailableData } from "@/lib/dashboard/data";
 import { datasetFor } from "@/lib/dashboard/planner";
 import { readModel, type ViewModel } from "@/lib/widgets/model";
 
@@ -45,7 +45,7 @@ export function WidgetView({
       </TileShell>
     );
   }
-  if (!availableData(snapshot).includes(datasetFor(spec.slice))) {
+  if (!dashboardAvailableData(snapshot).includes(datasetFor(spec.slice))) {
     return <TileShell title={spec.label} subtitle="No matching data"><p className="py-6 text-sm text-muted-foreground">No records match the current filters. Try a different period or customer filter.</p></TileShell>;
   }
   const model = readModel(snapshot, spec);

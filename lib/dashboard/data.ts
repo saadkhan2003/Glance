@@ -56,11 +56,28 @@ export function emptySnapshot(): WorkspaceSnapshot {
     tables: { items: [] },
   };
 }
+function normalizePastedArray(raw: unknown[]): unknown {
+  if (!raw.length) throw new Error("The JSON array is empty. Paste at least one record.");
+  if (raw.length > 1000) throw new Error("JSON arrays can contain up to 1,000 records.");
+  if (!raw.every(row => row && typeof row === "object" && !Array.isArray(row)))
+    throw new Error("A pasted JSON array must contain objects, such as [{\"name\":\"Acme\"}].");
+  const records = raw as Record<string, unknown>[];
+  const columns = [...new Set(records.flatMap(record => Object.keys(record)))];
+  if (!columns.length || columns.length > 200 || columns.some(column => !column.trim() || column.length > 200))
+    throw new Error("JSON array records need between 1 and 200 named fields.");
+  const rows = records.map(record => Object.fromEntries(columns.map(column => {
+    const value = record[column];
+    if (typeof value === "string" || typeof value === "number") return [column, value];
+    if (value === null || value === undefined || typeof value === "boolean") return [column, String(value ?? "")];
+    throw new Error(`Field \"${column}\" must contain text, a number, true/false, or null.`);
+  })));
+  return { tables: { items: [{ id: "pasted-json", title: "Pasted JSON", columns, rows }] } };
+}
 export function parseImport(input: string): WorkspaceSnapshot {
   if (new TextEncoder().encode(input).length > MAX_IMPORT_BYTES) throw new Error("JSON must be smaller than 500 KB");
   let raw: unknown;
   try { raw = JSON.parse(input); } catch { throw new Error("Invalid JSON. Check commas, quotes and brackets."); }
-  const result = importSchema.safeParse(raw);
+  const result = importSchema.safeParse(Array.isArray(raw) ? normalizePastedArray(raw) : raw);
   if (!result.success) throw new Error(result.error.issues.slice(0, 3).map(i => `${i.path.join(".") || "Data"}: ${i.message}`).join(" · "));
   const data = result.data;
   const snap: WorkspaceSnapshot = {
