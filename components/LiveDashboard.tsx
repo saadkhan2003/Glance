@@ -1,0 +1,58 @@
+"use client";
+import { useState } from "react";
+import { ArrowDown, ArrowUp, Download, Plus, Save, SlidersHorizontal, X, Database, Sparkles, LayoutGrid } from "lucide-react";
+import { useWorkspaceData } from "@/components/data-provider";
+import { WidgetView } from "@/components/widgets/WidgetView";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { availableData, EMPTY_FILTERS, importable } from "@/lib/dashboard/data";
+import { candidatesFor, CURATED_WIDGETS, type DashboardPlan, type PlanRequest } from "@/lib/dashboard/planner";
+import { dashboardCsv, downloadFile } from "@/lib/dashboard/export";
+import { SOURCE_IDS, type SourceId } from "@/lib/sources/types";
+import { toast } from "sonner";
+
+export function LiveDashboard(){
+  const {snapshot,raw,prompt,selection,loading,source,setSource,filters,setFilters,setPlan,save}=useWorkspaceData();
+  const [showFilters,setShowFilters]=useState(false),[showSave,setShowSave]=useState(false),[name,setName]=useState("");
+  const candidates=candidatesFor({prompt,source,available:availableData(raw) as PlanRequest["available"]});
+  const remaining=candidates.filter(w=>!selection.widgets.includes(w.id));
+  const hasFilters=Object.entries(filters).some(([key,value])=>value!==EMPTY_FILTERS[key as keyof typeof filters]);
+  const changeWidgets=(widgets:string[])=>setPlan({layout:selection.layout,widgets});
+  function move(index:number,step:number){const ids=[...selection.widgets];[ids[index],ids[index+step]]=[ids[index+step],ids[index]];changeWidgets(ids);}
+  const updated=raw.updatedAt?new Date(raw.updatedAt).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}):"Today";
+  const [dragging,setDragging]=useState<string|null>(null);
+  function dropOn(target:string,from:string){
+    if(!from||from===target) return;
+    const ids=[...selection.widgets];
+    const start=ids.indexOf(from),end=ids.indexOf(target);
+    if(start<0||end<0) return;
+    ids.splice(start,1);ids.splice(end,0,from);changeWidgets(ids);
+  }
+  if(raw.origin==="empty") return <div className="flex min-h-[60vh] flex-col items-center justify-center rounded-xl border border-dashed px-6 py-16 text-center"><img src="/empty-dashboard.svg" alt="" width={96} height={72} className="mb-4"/><h2 className="text-2xl font-semibold tracking-tight">Your dashboard starts empty</h2><p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">No company, revenue, or customer list is loaded. Import JSON on the left, or open a sample. Sample numbers stay fictional and appear only after you choose them.</p></div>;
+  return <div>
+    <div className="mb-7 flex flex-wrap items-start justify-between gap-4"><div><div className="mb-3 flex items-center gap-2"><span className="eyebrow">THE BIG PICTURE</span><span className="rounded-md border px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{raw.origin==="demo"?"DEMO DATA":"IMPORTED DATA"}</span></div><h2 className="max-w-3xl text-2xl font-semibold tracking-tight md:text-3xl">{prompt}</h2><p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground"><Database className="size-3.5"/>{raw.origin==="demo"?"Sample workspace":"Browser import"} · {raw.origin==="demo"?"Dataset":"Imported"} {updated} · USD</p></div>
+    <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={()=>setShowSave(!showSave)} aria-expanded={showSave}><Save/>Save view</Button><Button size="sm" variant="outline" disabled={!selection.widgets.length} onClick={()=>{downloadFile("jev-dashboard.csv",dashboardCsv(snapshot,selection.widgets),"text/csv;charset=utf-8");toast.success("CSV exported using the current filters");}}><Download/>Export CSV</Button></div></div>
+    {showSave&&<form className="mb-5 flex flex-wrap items-end gap-3 rounded-xl border bg-muted/30 p-4" onSubmit={e=>{e.preventDefault();save(name);}}><div className="min-w-0 flex-1"><label htmlFor="save-name" className="mb-2 block text-xs font-medium">Dashboard name</label><Input id="save-name" maxLength={60} required value={name} onChange={e=>setName(e.target.value)} placeholder="My revenue dashboard"/></div><Button type="submit">Save dashboard</Button><p className="w-full text-xs text-muted-foreground">Saved in this browser, including imported data, filters and widget order. Up to 10 views.</p></form>}
+    <div className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border bg-card px-3 py-2">
+      <label htmlFor="source" className="text-xs font-medium">Source</label><select id="source" className="control-select" value={source} onChange={e=>setSource(e.target.value as SourceId)}>{SOURCE_IDS.map(id=><option key={id} value={id}>{id==="workspace"?"All datasets":id[0].toUpperCase()+id.slice(1)}</option>)}</select>
+      <span className="hidden h-5 border-r sm:block"/>
+      <Button variant={hasFilters?"secondary":"ghost"} size="sm" onClick={()=>setShowFilters(!showFilters)} aria-expanded={showFilters}><SlidersHorizontal/>Filters{hasFilters?" · active":""}</Button>
+      <label htmlFor="layout" className="sr-only">Layout</label><LayoutGrid className="ml-auto hidden size-4 text-muted-foreground sm:block"/><select id="layout" className="control-select" value={selection.layout} onChange={e=>setPlan({widgets:selection.widgets,layout:e.target.value as DashboardPlan["layout"]})}><option value="overview">Overview</option><option value="balanced">Balanced grid</option><option value="wide">Full width</option></select>
+    </div>
+    {showFilters&&<section aria-label="Dashboard filters" className="mb-5 rounded-xl border bg-muted/30 p-4"><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div><label htmlFor="from" className="filter-label">Revenue from</label><input id="from" type="month" className="control-input" value={filters.from} max={filters.to||undefined} onChange={e=>setFilters({...filters,from:e.target.value})}/></div>
+      <div><label htmlFor="to" className="filter-label">Revenue through</label><input id="to" type="month" className="control-input" value={filters.to} min={filters.from||undefined} onChange={e=>setFilters({...filters,to:e.target.value})}/></div>
+      <div><label htmlFor="region" className="filter-label">Customer region</label><select id="region" className="control-input" value={filters.region} onChange={e=>setFilters({...filters,region:e.target.value})}><option value="all">All regions</option>{[...new Set(raw.customers.rows.map(r=>r.region))].sort().map(r=><option key={r}>{r}</option>)}</select></div>
+      <div><label htmlFor="status" className="filter-label">Customer status</label><select id="status" className="control-input" value={filters.status} onChange={e=>setFilters({...filters,status:e.target.value as typeof filters.status})}><option value="all">All statuses</option><option>Active</option><option>Pending</option><option>At risk</option></select></div>
+    </div><div className="mt-3 flex flex-wrap items-center justify-between gap-2"><p className="text-xs text-muted-foreground">{snapshot.revenue.labels.length} revenue periods · {snapshot.customers.rows.length} customers. Other datasets are unchanged.</p><Button size="sm" variant="ghost" onClick={()=>setFilters(EMPTY_FILTERS)}>Clear filters</Button></div>{filters.from&&filters.to&&filters.from>filters.to&&<p role="alert" className="text-xs text-destructive">The start period must be before the end period.</p>}</section>}
+    {/last year|year.over.year|\byoy\b/i.test(prompt)&&<p role="status" className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">Year-over-year comparisons are not available in this demo. Showing the available monthly data instead.</p>}
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground"><p role="status" className="flex items-center gap-2"><Sparkles className={`size-3.5 ${loading?"animate-pulse":""}`}/>{loading?"Jev is selecting views. Your local dashboard is ready.":selection.message}</p><span>Drag a card to reorder · {selection.widgets.length} views</span></div>
+    {!selection.widgets.length?<div className="rounded-xl border border-dashed p-12 text-center"><Database className="mx-auto mb-4 size-8 text-muted-foreground"/><h3 className="font-medium">No data for this source</h3><p className="mt-2 text-sm text-muted-foreground">Choose another source or import a dataset using the example JSON format.</p><Button variant="outline" className="mt-5" onClick={()=>setSource("workspace")}>Show all datasets</Button></div>:<div className={`dashboard-grid ${selection.layout}`} aria-busy={loading}>
+      {selection.widgets.map((id,index)=>{const spec=CURATED_WIDGETS.find(w=>w.id===id);if(!spec)return null;const wide=["line","table","kanban","invoice"].includes(spec.kind);return <section key={id} aria-label={spec.label} draggable onDragStart={e=>{e.dataTransfer.setData("text/plain",id);e.dataTransfer.effectAllowed="move";setDragging(id);}} onDragEnd={()=>setDragging(null)} onDragOver={e=>{e.preventDefault();e.dataTransfer.dropEffect="move";}} onDrop={e=>{e.preventDefault();dropOn(id,e.dataTransfer.getData("text/plain"));setDragging(null);}} className={`widget-frame min-w-0 ${wide?"widget-wide":""} ${dragging===id?"is-dragging":""}`}>
+        <div className="widget-controls"><span className="drag-grip" aria-hidden="true"><svg viewBox="0 0 12 12" width="12" height="12"><circle cx="4" cy="3" r="1" fill="currentColor"/><circle cx="8" cy="3" r="1" fill="currentColor"/><circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="8" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="9" r="1" fill="currentColor"/><circle cx="8" cy="9" r="1" fill="currentColor"/></svg></span><button aria-label={`Move ${spec.label} earlier`} disabled={index===0} onClick={()=>move(index,-1)}><ArrowUp/></button><button aria-label={`Move ${spec.label} later`} disabled={index===selection.widgets.length-1} onClick={()=>move(index,1)}><ArrowDown/></button><button aria-label={`Remove ${spec.label}`} disabled={selection.widgets.length===1} onClick={()=>changeWidgets(selection.widgets.filter(w=>w!==id))}><X/></button></div>
+        <WidgetView spec={spec} prompt={prompt}/>
+      </section>;})}
+    </div>}
+    <div className="mt-5 flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><Plus className="size-4 text-muted-foreground"/><label htmlFor="add-widget" className="sr-only">Add a widget</label><select id="add-widget" className="control-select max-w-full" value="" disabled={!remaining.length||selection.widgets.length>=8} onChange={e=>{if(e.target.value)changeWidgets([...selection.widgets,e.target.value]);}}><option value="">{selection.widgets.length>=8?"Maximum 8 views":"Add a view…"}</option>{remaining.map(w=><option key={w.id} value={w.id}>{w.label}</option>)}</select></div><Button size="sm" variant="ghost" onClick={()=>downloadFile("jev-data.json",JSON.stringify(importable(raw),null,2),"application/json")}><Download/>Download source JSON</Button></div>
+  </div>;
+}

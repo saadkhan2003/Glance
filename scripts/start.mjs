@@ -1,0 +1,13 @@
+import { cpSync, existsSync } from 'node:fs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import nextEnv from '@next/env';
+const root=process.cwd(), standalone=path.join(root,'.next','standalone');
+nextEnv.loadEnvConfig(root, false);
+if(!existsSync(path.join(standalone,'server.js'))) throw new Error('Run npm run build before npm start.');
+cpSync(path.join(root,'public'),path.join(standalone,'public'),{recursive:true});
+cpSync(path.join(root,'.next','static'),path.join(standalone,'.next','static'),{recursive:true});
+const arg=(name)=>{const index=process.argv.indexOf(name);return index<0?undefined:process.argv[index+1];};
+process.env.PORT=arg('--port') || process.env.PORT || '3000';
+process.env.HOSTNAME=arg('--hostname') || process.env.APP_HOST || '0.0.0.0';
+await import(pathToFileURL(path.join(standalone,'server.js')).href);

@@ -1,0 +1,51 @@
+/**
+ * Canonical inventory of shadcn/ui primitives shipped in this repo.
+ * Dashboard tiles compose from these — never ad-hoc one-off styles.
+ */
+export const SHADCN_UI_COMPONENTS = [
+  "accordion",
+  "alert",
+  "aspect-ratio",
+  "avatar",
+  "badge",
+  "breadcrumb",
+  "button",
+  "calendar",
+  "card",
+  "carousel",
+  "chart",
+  "checkbox",
+  "collapsible",
+  "command",
+  "context-menu",
+  "dialog",
+  "dropdown-menu",
+  "hover-card",
+  "input",
+  "label",
+  "pagination",
+  "popover",
+  "progress",
+  "radio-group",
+  "scroll-area",
+  "select",
+  "separator",
+  "sheet",
+  "slider",
+  "skeleton",
+  "sonner",
+  "switch",
+  "table",
+  "tabs",
+  "textarea",
+  "toggle",
+  "toggle-group",
+  "tooltip",
+] as const;
+
+export const LIBRARY_BLOCKS = [
+  "tile-shell",
+  "metrics",
+  "data-display",
+  "charts",
+] as const;

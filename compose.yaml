@@ -1,0 +1,18 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      AI_ENABLED: ${AI_ENABLED:-false}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      JEV_MODEL: ${JEV_MODEL:-typesafe/jev-1.13}
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3000}
+      AI_DAILY_REQUEST_LIMIT: ${AI_DAILY_REQUEST_LIMIT:-100}
+      AI_BUDGET_DIR: /app/.data/ai-budget
+    volumes:
+      - budget:/app/.data
+    init: true
+volumes:
+  budget:

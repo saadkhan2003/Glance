@@ -1,0 +1,285 @@
+{
+  "origin": "demo",
+  "matched": [
+    "workspace"
+  ],
+  "focus": "workspace",
+  "revenue": {
+    "labels": [
+      "2026-01",
+      "2026-02",
+      "2026-03",
+      "2026-04",
+      "2026-05",
+      "2026-06",
+      "2026-07"
+    ],
+    "values": [
+      42000,
+      51000,
+      48000,
+      62000,
+      58000,
+      71000,
+      76000
+    ],
+    "costs": [
+      28000,
+      30000,
+      31000,
+      33000,
+      32000,
+      35000,
+      36000
+    ],
+    "current": 76000,
+    "previous": 71000,
+    "goal": 100000
+  },
+  "customers": {
+    "rows": [
+      {
+        "id": "5",
+        "name": "Stark Ind",
+        "region": "EU",
+        "amount": 22100,
+        "status": "At risk"
+      },
+      {
+        "id": "6",
+        "name": "Wayne Ent",
+        "region": "NA",
+        "amount": 18400,
+        "status": "Active"
+      },
+      {
+        "id": "4",
+        "name": "Umbrella",
+        "region": "NA",
+        "amount": 15600,
+        "status": "Active"
+      },
+      {
+        "id": "1",
+        "name": "Acme Corp",
+        "region": "NA",
+        "amount": 12400,
+        "status": "Active"
+      },
+      {
+        "id": "2",
+        "name": "Globex",
+        "region": "EU",
+        "amount": 9800,
+        "status": "Active"
+      },
+      {
+        "id": "8",
+        "name": "Soylent",
+        "region": "NA",
+        "amount": 9100,
+        "status": "Active"
+      },
+      {
+        "id": "3",
+        "name": "Initech",
+        "region": "APAC",
+        "amount": 7200,
+        "status": "Pending"
+      },
+      {
+        "id": "7",
+        "name": "Hooli",
+        "region": "APAC",
+        "amount": 6400,
+        "status": "Pending"
+      }
+    ]
+  },
+  "invoice": {
+    "number": "INV-2048",
+    "client": "Acme Corp",
+    "due": "2026-10-15",
+    "lines": [
+      {
+        "item": "Platform license",
+        "qty": 1,
+        "price": 2400
+      },
+      {
+        "item": "Support",
+        "qty": 1,
+        "price": 600
+      },
+      {
+        "item": "Extra seats",
+        "qty": 4,
+        "price": 99
+      }
+    ]
+  },
+  "tasks": {
+    "columns": [
+      {
+        "id": "todo",
+        "title": "To do",
+        "cards": [
+          "Spec review",
+          "API contract",
+          "Write seed script"
+        ]
+      },
+      {
+        "id": "doing",
+        "title": "In progress",
+        "cards": [
+          "Dashboard tiles"
+        ]
+      },
+      {
+        "id": "done",
+        "title": "Done",
+        "cards": [
+          "Jev wiring"
+        ]
+      }
+    ]
+  },
+  "team": {
+    "members": [
+      {
+        "name": "Ana Rivera",
+        "role": "PM",
+        "status": "online"
+      },
+      {
+        "name": "Ben Okonkwo",
+        "role": "Eng",
+        "status": "online"
+      },
+      {
+        "name": "Chen Wei",
+        "role": "Design",
+        "status": "away"
+      },
+      {
+        "name": "Sam Patel",
+        "role": "Support",
+        "status": "online"
+      }
+    ]
+  },
+  "activity": {
+    "items": [
+      {
+        "who": "Sam",
+        "action": "closed ticket #18",
+        "when": "2026-10-10T08:55:00Z"
+      },
+      {
+        "who": "Ana",
+        "action": "updated KPI targets",
+        "when": "2m ago"
+      },
+      {
+        "who": "Ben",
+        "action": "merged PR #42",
+        "when": "18m ago"
+      },
+      {
+        "who": "Chen",
+        "action": "commented on layout",
+        "when": "1h ago"
+      }
+    ]
+  },
+  "reviews": {
+    "reviews": [
+      {
+        "author": "Maya",
+        "rating": 5,
+        "text": "Dashboard updates as we type."
+      },
+      {
+        "author": "Omar",
+        "rating": 4,
+        "text": "Premade tiles feel polished."
+      },
+      {
+        "author": "Lina",
+        "rating": 5,
+        "text": "Clear revenue view."
+      }
+    ]
+  },
+  "regions": {
+    "regions": [
+      {
+        "region": "North America",
+        "value": 38
+      },
+      {
+        "region": "Europe",
+        "value": 27
+      },
+      {
+        "region": "APAC",
+        "value": 23
+      },
+      {
+        "region": "LATAM",
+        "value": 12
+      }
+    ]
+  },
+  "sla": {
+    "uptime": 99.92,
+    "target": 99.9,
+    "incidents": 1,
+    "level": "warning",
+    "message": "Elevated API latency in eu-west",
+    "services": [
+      {
+        "name": "API",
+        "status": "degraded"
+      },
+      {
+        "name": "Workers",
+        "status": "ok"
+      },
+      {
+        "name": "Database",
+        "status": "ok"
+      },
+      {
+        "name": "Billing",
+        "status": "ok"
+      }
+    ]
+  },
+  "funnel": {
+    "stages": [
+      {
+        "stage": "Visitors",
+        "value": 12000
+      },
+      {
+        "stage": "Signups",
+        "value": 3200
+      },
+      {
+        "stage": "Activated",
+        "value": 1800
+      },
+      {
+        "stage": "Paid",
+        "value": 420
+      },
+      {
+        "stage": "Retained",
+        "value": 210
+      }
+    ]
+  },
+  "updatedAt": "2026-10-10T09:00:00.000Z"
+}

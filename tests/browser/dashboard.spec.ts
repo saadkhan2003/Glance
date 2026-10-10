@@ -1,0 +1,50 @@
+import { test, expect } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
+import { readFileSync } from "node:fs";
+
+test("demo generates, filters, exports and restores a saved view",async({page})=>{
+  const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
+  await page.goto("/");
+  await expect(page.getByRole("heading",{name:"Your dashboard starts empty",exact:true})).toBeVisible();
+  await page.getByRole("button",{name:/Revenue & customers/}).click();
+  await expect(page.getByRole("heading",{name:"Revenue trend and top customers",exact:true})).toBeVisible();
+  await expect(page.getByRole("status").filter({hasText:"Local selection · no model request needed"})).toBeVisible();
+  await page.getByRole("button",{name:"Filters",exact:true}).click();
+  await page.getByLabel("Customer status",{exact:true}).selectOption("At risk");
+  await expect(page.getByRole("region",{name:"Customer table",exact:true})).toContainText("Stark Ind");
+  await expect(page.getByRole("region",{name:"Customer table",exact:true})).not.toContainText("Acme Corp");
+  const downloadEvent=page.waitForEvent("download");await page.getByRole("button",{name:"Export CSV"}).click();
+  const download=await downloadEvent;const file=await download.path();expect(readFileSync(file!,"utf8")).toContain("Stark Ind");
+  await page.getByRole("button",{name:"Save view"}).click();await page.getByLabel("Dashboard name").fill("Risk review");await page.getByRole("button",{name:"Save dashboard",exact:true}).click();
+  await page.reload();await page.getByRole("button",{name:"Risk review",exact:true}).click();
+  await page.getByRole("button",{name:/Filters/}).click();await expect(page.getByLabel("Customer status",{exact:true})).toHaveValue("At risk");
+  expect(errors).toEqual([]);
+});
+test("import validates errors, changes metrics, and restores demo",async({page})=>{
+  await page.goto("/");await page.getByText("Bring your own data",{exact:true}).click();
+  await page.getByLabel("JSON data",{exact:true}).fill("{invalid");await page.getByRole("button",{name:"Apply JSON"}).click();await expect(page.getByRole("alert").filter({hasText:"Invalid JSON"})).toBeVisible();
+  await page.getByLabel("JSON data",{exact:true}).fill(JSON.stringify({customers:{rows:[{id:"x",name:"Imported account",region:"EU",amount:1500.25,status:"Active"}]}}));await page.getByRole("button",{name:"Apply JSON"}).click();
+  await expect(page.getByRole("region",{name:"Customer table",exact:true})).toContainText("Imported account");
+  await expect(page.getByRole("region",{name:"Customer count",exact:true})).toContainText("1");
+  await page.getByLabel("Source",{exact:true}).selectOption("revenue");await expect(page.getByRole("heading",{name:"No data for this source"})).toBeVisible();
+  await page.getByRole("button",{name:"Restore demo data"}).click();await expect(page.getByRole("region",{name:"Revenue headline",exact:true})).toContainText("76,000");
+});
+test("manual layout, widgets and offline fallback",async({page})=>{
+  await page.goto("/");await page.getByRole("button",{name:/Revenue & customers/}).click();await expect(page.getByRole("heading",{name:"Revenue trend and top customers",exact:true})).toBeVisible();await page.getByLabel("Layout",{exact:true}).selectOption("wide");
+  await page.getByLabel("Add a widget",{exact:true}).selectOption("average-deal");await expect(page.getByRole("region",{name:"Average deal size",exact:true})).toContainText("12,625");
+  await page.getByRole("button",{name:"Move Average deal size earlier",exact:true}).click();
+  await page.getByRole("button",{name:"Remove Average deal size",exact:true}).click();await expect(page.getByRole("region",{name:"Average deal size",exact:true})).toHaveCount(0);
+  await page.route("**/api/dashboard",route=>route.abort());
+  await page.getByRole("button",{name:/Billing & conversion/}).click();
+  await expect(page.getByRole("region",{name:"Invoice",exact:true})).toContainText("3,396");
+  await expect(page.getByRole("status").filter({hasText:"local selection is ready"})).toBeVisible();
+});
+test("desktop and mobile are accessible without horizontal overflow",async({page})=>{
+  for(const width of [1440,768,375]){
+    await page.setViewportSize({width,height:1000});await page.goto("/");
+    await expect(page.getByRole("heading",{name:"Your dashboard starts empty",exact:true})).toBeVisible();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+    const results=await new AxeBuilder({page}).withTags(["wcag2a","wcag2aa","wcag21aa"]).analyze();expect(results.violations).toEqual([]);
+    await page.screenshot({path:`test-results/dashboard-${width}.png`,fullPage:true});
+  }
+});
