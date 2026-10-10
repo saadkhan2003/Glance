@@ -78,6 +78,22 @@ test("uploaded table fields filter rows immediately", async ({ page }) => {
   await expect(page.getByText("Contacts: 1 rows")).toBeVisible();
 });
 
+test("customer CSV does not show duplicate column filters and can be cleared", async ({ page }) => {
+  await page.goto("/");
+  await page.getByText("Bring your own data", { exact: true }).click();
+  await page.getByLabel("JSON data", { exact: true }).fill(JSON.stringify({
+    customers: { rows: [{ id: "1", name: "Acme", region: "NA", amount: 100, status: "Active" }] },
+    tables: { items: [{ id: "csv", title: "CSV", columns: ["id", "name", "region", "amount", "status"], rows: [{ id: 1, name: "Acme", region: "NA", amount: 100, status: "Active" }] }] },
+  }));
+  await page.getByRole("button", { name: "Apply JSON" }).click();
+  await expect(page.getByLabel("Customer region")).toBeVisible();
+  await expect(page.getByLabel("CSV · name")).toHaveCount(0);
+  await expect(page.getByText("CSV: 1 rows")).toHaveCount(0);
+  await page.getByRole("button", { name: "Clear data" }).click();
+  await expect(page.getByRole("heading", { name: "Your dashboard starts empty" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Dashboard filters" })).toHaveCount(0);
+});
+
 test("typing and importing do not request or render a dashboard", async ({ page }) => {
   let requests = 0;
   await page.route("**/api/dashboard", async route => { requests++; await route.continue(); });

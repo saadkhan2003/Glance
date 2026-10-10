@@ -1,6 +1,6 @@
 import { z } from "zod";
 import demo from "./demo.json";
-import type { WorkspaceSnapshot } from "@/lib/sources/types";
+import type { ImportTable, WorkspaceSnapshot } from "@/lib/sources/types";
 
 export const MAX_IMPORT_BYTES = 500_000;
 const text = z.string().trim().min(1).max(200);
@@ -90,8 +90,21 @@ export const filtersSchema = z.object({ from: z.string().regex(/^(|\d{4}-(0[1-9]
 export type Filters = z.infer<typeof filtersSchema>;
 export const EMPTY_FILTERS: Filters = { from: "", to: "", region: "all", status: "all" };
 export function tableFilterKey(tableId: string, column: string) { return JSON.stringify([tableId, column]); }
+export function isCustomerMirrorTable(table: ImportTable, customers: WorkspaceSnapshot["customers"]["rows"]) {
+  const fields = ["id", "name", "region", "amount", "status"] as const;
+  if (!customers.length || table.rows.length !== customers.length || table.columns.length !== fields.length ||
+    !fields.every((field, index) => table.columns[index].toLowerCase() === field)) return false;
+  const byId = new Map(customers.map(customer => [customer.id, customer]));
+  return table.rows.every(row => {
+    const customer = byId.get(String(row[table.columns[0]]));
+    return customer && fields.every((field, index) => String(row[table.columns[index]]) === String(customer[field]));
+  });
+}
 export function filterSnapshot(s: WorkspaceSnapshot, f: Filters): WorkspaceSnapshot {
   const indices = s.revenue.labels.map((label,i)=>({label,i})).filter(r=>(!f.from || r.label >= f.from) && (!f.to || r.label <= f.to));
   const values = indices.map(r=>s.revenue.values[r.i]);
-  return { ...s, revenue: { ...s.revenue, labels: indices.map(r=>r.label), values, costs: indices.map(r=>s.revenue.costs[r.i]), current: values.at(-1) ?? 0, previous: values.at(-2) ?? 0 }, customers: { rows: s.customers.rows.filter(r=>(f.region === "all" || r.region === f.region) && (f.status === "all" || r.status === f.status)) }, tables: { items: s.tables.items.map(table => ({ ...table, rows: table.rows.filter(row => table.columns.every(column => { const query = f.table?.[tableFilterKey(table.id, column)]?.trim().toLocaleLowerCase(); return !query || String(row[column] ?? "").toLocaleLowerCase().includes(query); })) })) } };
+  return { ...s, revenue: { ...s.revenue, labels: indices.map(r=>r.label), values, costs: indices.map(r=>s.revenue.costs[r.i]), current: values.at(-1) ?? 0, previous: values.at(-2) ?? 0 }, customers: { rows: s.customers.rows.filter(r=>(f.region === "all" || r.region === f.region) && (f.status === "all" || r.status === f.status)) }, tables: { items: s.tables.items.map(table => ({ ...table, rows: table.rows.filter(row => {
+    if (isCustomerMirrorTable(table, s.customers.rows) && ((f.region !== "all" && row[table.columns[2]] !== f.region) || (f.status !== "all" && row[table.columns[4]] !== f.status))) return false;
+    return table.columns.every(column => { const query = f.table?.[tableFilterKey(table.id, column)]?.trim().toLocaleLowerCase(); return !query || String(row[column] ?? "").toLocaleLowerCase().includes(query); });
+  }) })) } };
 }

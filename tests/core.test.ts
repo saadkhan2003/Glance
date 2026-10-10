@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { demoSnapshot, parseImport, importable, filterSnapshot, EMPTY_FILTERS, availableData } from "../lib/dashboard/data";
+import { demoSnapshot, parseImport, importable, filterSnapshot, EMPTY_FILTERS, availableData, isCustomerMirrorTable } from "../lib/dashboard/data";
 import { importFromSqlite } from "../lib/dashboard/sqlite-import";
 import { importFromCsv } from "../lib/dashboard/csv-import";
 import { importFromXlsx } from "../lib/dashboard/xlsx-import";
@@ -76,6 +76,8 @@ test("SQLite and CSV imports keep the booked total, average deal and invoice",()
   rmSync(dir,{recursive:true,force:true});
   const csv=parseImport(JSON.stringify(importFromCsv("id,name,region,amount,status\n1,Acme Corp,NA,12400,Active\n")));
   assert.equal(model("booked-revenue",csv).value,12400);
+  assert.equal(isCustomerMirrorTable(csv.tables.items[0],csv.customers.rows),true);
+  assert.equal(filterSnapshot(csv,{...EMPTY_FILTERS,region:"EU"}).tables.items[0].rows.length,0);
   const arbitrary=importFromCsv("name,amount\nAcme,1\n");
   const dyn=parseImport(JSON.stringify(arbitrary));
   assert.equal(dyn.tables.items[0].columns[0],"name");
